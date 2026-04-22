@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>오늘 서울 어디갈까</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%23F9F5EF'/%3E%3Cpath d='M16 5C12.134 5 9 8.134 9 12c0 5.25 7 15 7 15s7-9.75 7-15c0-3.866-3.134-7-7-7z' fill='%23C4603A'/%3E%3Ccircle cx='16' cy='12' r='2.8' fill='%23F9F5EF'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
@@ -359,6 +360,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--cream);color:var(--i
   <div class="admin-wrap">
     <div class="admin-header">
       <h2 class="admin-title">장소 관리</h2>
+      <button class="btn-prev" onclick="window._fbSeedAll && window._fbSeedAll()" style="font-size:12px;color:var(--muted)">🌱 초기 데이터 업로드 (최초 1회)</button>
     </div>
     <div class="admin-stats" id="adminStats"></div>
     <div class="admin-toolbar">
@@ -512,9 +514,53 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--cream);color:var(--i
   </div>
 </div>
 
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+// ── 🔥 여기에 Firebase 설정 붙여넣기 ──────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyCqQly52M6yf8bJYUGDmHEeIxWYq2s75R4",
+  authDomain: "seoul-today.firebaseapp.com",
+  projectId: "seoul-today",
+  storageBucket: "seoul-today.firebasestorage.app",
+  messagingSenderId: "340179183169",
+  appId: "1:340179183169:web:84711a6cec6b29abb488c0",
+  measurementId: "G-9JNC0GYDZD"
+};
+// ────────────────────────────────────────────────────────
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const placesCol = collection(db, 'places');
+
+// Firestore → PLACES 실시간 동기화
+onSnapshot(placesCol, (snapshot) => {
+  PLACES = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+  // 현재 어드민 페이지 열려있으면 자동 갱신
+  if(document.getElementById('page3')?.classList.contains('active')) renderAdmin();
+});
+
+// 전역 DB 함수 노출
+window._fbSave = async (p) => {
+  await setDoc(doc(db, 'places', p.id), p);
+};
+window._fbDelete = async (id) => {
+  await deleteDoc(doc(db, 'places', id));
+};
+window._fbSeedAll = async () => {
+  for(const p of SEED_PLACES) {
+    await setDoc(doc(db, 'places', p.id), p);
+  }
+  alert('초기 데이터 업로드 완료!');
+};
+</script>
+
 <script>
 // ── 초기 데이터 ─────────────────────────────────────────
-let PLACES = [
+// 초기 시드 데이터 (최초 1회 Firebase 업로드용)
+const SEED_PLACES = [
   {id:'p1',name:'오브젝트 서교점',cat:'souvenir',area:'홍대·상수',address:'마포구 와우산로35길 13',station:'홍대입구역 2번 출구 도보 5분',time:35,hours:'12:00~21:00',tip:'4층 전부 돌기. 매달 작가 콜라보 전시 바뀜',url:'instagram.com/object_official',who:['alone','friend','date'],env:['indoor','photo','trendy'],price:'mid',verified:'2025-03',active:true},
   {id:'p2',name:'수바코',cat:'souvenir',area:'홍대·상수',address:'마포구 동교동 177-22',station:'홍대입구역 6번 출구 앞',time:25,hours:'12:00~22:00',tip:'현금만 가능! 싸이월드 감성 스티커 사진기 있음',who:['alone','friend'],env:['indoor','retro','photo'],price:'low',verified:'2025-02',active:true},
   {id:'p3',name:'리틀리들',cat:'souvenir',area:'홍대·상수',address:'마포구 와우산로37길 42',station:'홍대입구역 도보 7분',time:25,hours:'13:00~21:00 (월 휴무)',tip:'인스타 @littleriddle_store 팝업 미리 확인',who:['alone','friend','date'],env:['indoor','retro','quiet'],price:'mid',verified:'2025-01',active:true},
@@ -639,6 +685,9 @@ let PLACES = [
   {id:'p89',name:'레인리포트 레인보우',cat:'cafe',area:'익선동·서순라길',address:'종로구 수표로28길 33-7',station:'종로3가역 4번 출구 도보 5분',time:35,hours:'10:30~20:30',tip:'한옥 처마 아래 비 내리는 연출로 유명한 포토 카페. 익선동 감성 코스에 잘 맞음',who:['friend','date'],env:['indoor','photo','korean','trendy'],price:'mid',verified:'2026-04',active:true},
   {id:'p90',name:'실라당 익선',cat:'bakery',area:'익선동·서순라길',address:'종로구 돈화문로11다길 40 1층',station:'종로3가역 도보 5분',time:30,hours:'매일 10:30~21:00',tip:'한과·전통 디저트를 현대적으로 풀어낸 공간. 선물용 디저트나 한국적인 코스를 만들 때 좋음',who:['alone','friend','date','family'],env:['indoor','photo','korean'],price:'mid',verified:'2026-04',active:true},
 ];
+
+// Firebase에서 실시간으로 채워짐 (초기엔 빈 배열)
+let PLACES = [];
 
 let editId = null;
 
@@ -1233,7 +1282,7 @@ function openEdit(id){openModal(id);}
 function closeModal(){document.getElementById('modalBg').classList.remove('active');editId=null;}
 function togglePick(el){el.classList.toggle('sel');}
 
-function savePlace() {
+async function savePlace() {
   const name=document.getElementById('f_name').value.trim();
   const cat=document.getElementById('f_cat').value;
   const area=document.getElementById('f_area').value.trim();
@@ -1255,20 +1304,25 @@ function savePlace() {
     who: who.length?who:['alone','friend','date','family'],
     env,
   };
-  if(editId) {
-    const idx=PLACES.findIndex(x=>x.id===editId);
-    if(idx>=0) PLACES[idx]=p;
-  } else {
-    PLACES.push(p);
-  }
   closeModal();
-  renderAdmin();
+  if(window._fbSave) {
+    await window._fbSave(p); // Firebase 저장 (onSnapshot이 자동으로 renderAdmin 호출)
+  } else {
+    // Firebase 미연결 시 로컬 폴백
+    if(editId) { const idx=PLACES.findIndex(x=>x.id===editId); if(idx>=0) PLACES[idx]=p; }
+    else PLACES.push(p);
+    renderAdmin();
+  }
 }
 
-function deletePlace(id) {
+async function deletePlace(id) {
   if(!confirm('이 장소를 삭제할까요?')) return;
-  PLACES=PLACES.filter(p=>p.id!==id);
-  renderAdmin();
+  if(window._fbDelete) {
+    await window._fbDelete(id); // Firebase 삭제
+  } else {
+    PLACES=PLACES.filter(p=>p.id!==id);
+    renderAdmin();
+  }
 }
 
 // close modal on bg click
