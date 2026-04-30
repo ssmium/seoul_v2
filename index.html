@@ -24,13 +24,25 @@
 body{font-family:'Noto Sans KR',sans-serif;background:var(--cream);color:var(--ink);min-height:100vh;overflow-x:hidden}
 
 /* NAV */
-.nav{position:fixed;top:0;left:0;right:0;z-index:200;background:rgba(249,245,239,0.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:56px}
-.nav-logo{font-family:'Noto Serif KR',serif;font-size:18px;font-weight:700;color:var(--ink);cursor:pointer}
+.nav{position:fixed;top:0;left:0;right:0;z-index:200;background:rgba(249,245,239,0.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:56px;gap:16px}
+.nav-logo{font-family:'Noto Serif KR',serif;font-size:18px;font-weight:700;color:var(--ink);cursor:pointer;flex-shrink:0}
 .nav-logo span{color:var(--terra)}
-.nav-tabs{display:flex;gap:4px}
+.nav-tabs{display:flex;gap:4px;flex:1;justify-content:center}
 .nav-tab{padding:6px 16px;border-radius:2px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:transparent;color:var(--muted);transition:all .15s;font-family:'Noto Sans KR',sans-serif}
 .nav-tab:hover{color:var(--ink)}
 .nav-tab.active{background:var(--ink);color:var(--cream)}
+
+/* 🔥 NEW: 사용자 영역 (로그인 버튼 / 사용자 정보) */
+.user-area{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.user-info{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink2)}
+.user-avatar{width:28px;height:28px;border-radius:50%;border:1px solid var(--border)}
+.user-name{display:none}
+@media(min-width:600px){.user-name{display:inline;font-weight:500}}
+.login-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border:1px solid var(--ink);background:transparent;color:var(--ink);font-size:12px;cursor:pointer;border-radius:2px;font-family:'Noto Sans KR',sans-serif;transition:all .15s;font-weight:500}
+.login-btn:hover{background:var(--ink);color:var(--cream)}
+.logout-btn{padding:5px 10px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:11px;cursor:pointer;border-radius:2px;font-family:'Noto Sans KR',sans-serif;transition:all .15s}
+.logout-btn:hover{border-color:var(--terra);color:var(--terra)}
+.admin-badge{font-size:10px;background:var(--terra);color:#fff;padding:2px 6px;border-radius:2px;font-weight:600;letter-spacing:.04em}
 
 /* PAGE SYSTEM */
 .page{display:none;padding-top:56px}
@@ -207,7 +219,19 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--cream);color:var(--i
   <div class="nav-logo" onclick="showPage('hero')">오늘 <span>서울</span></div>
   <div class="nav-tabs">
     <button class="nav-tab active" id="tab-find" onclick="showPage('hero')">코스 찾기</button>
-    <button class="nav-tab" id="tab-admin" onclick="showPage('admin')">장소 관리</button>
+    <button class="nav-tab" id="tab-admin" onclick="showPage('admin')" style="display:none">장소 관리</button>
+  </div>
+  <!-- 🔥 NEW: 사용자 영역 -->
+  <div class="user-area" id="userArea">
+    <button class="login-btn" onclick="window._fbLogin && window._fbLogin()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+      </svg>
+      구글 로그인
+    </button>
   </div>
 </nav>
 
@@ -364,7 +388,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--cream);color:var(--i
 <div class="page" id="page-admin">
   <div class="admin-wrap">
     <div class="admin-header">
-      <h2 class="admin-title">장소 관리</h2>
+      <h2 class="admin-title">장소 관리 <span class="admin-badge">관리자</span></h2>
       <button class="btn-prev" onclick="window._fbSeedAll && window._fbSeedAll()" style="font-size:12px;color:var(--muted)">🌱 초기 데이터 업로드 (최초 1회)</button>
     </div>
     <div class="admin-stats" id="adminStats"></div>
@@ -519,12 +543,13 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--cream);color:var(--i
   </div>
 </div>
 
-<!-- Firebase SDK -->
+<!-- 🔥 Firebase SDK + Auth (NEW) -->
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
-// ── 🔥 여기에 Firebase 설정 붙여넣기 ──────────────────────
+// ── Firebase 설정 ────────────────────────────────────────
 const firebaseConfig = {
   apiKey: "AIzaSyCqQly52M6yf8bJYUGDmHEeIxWYq2s75R4",
   authDomain: "seoul-today.firebaseapp.com",
@@ -534,27 +559,62 @@ const firebaseConfig = {
   appId: "1:340179183169:web:84711a6cec6b29abb488c0",
   measurementId: "G-9JNC0GYDZD"
 };
-// ────────────────────────────────────────────────────────
+
+// ── 관리자 이메일 ─────────────────────────────────────────
+const ADMIN_EMAIL = 'yjuio9603@gmail.com';
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
 const placesCol = collection(db, 'places');
 
-// Firestore → PLACES 실시간 동기화
-onSnapshot(placesCol, (snapshot) => {
-  PLACES = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-  // 현재 어드민 페이지 열려있으면 자동 갱신
-  if(document.getElementById('page3')?.classList.contains('active')) renderAdmin();
+// ── Auth 함수 ────────────────────────────────────────────
+window._fbLogin = async () => {
+  try {
+    await signInWithPopup(auth, provider);
+  } catch(e) {
+    console.error('로그인 실패:', e);
+    alert('로그인에 실패했어요: ' + e.message);
+  }
+};
+window._fbLogout = async () => {
+  await signOut(auth);
+};
+
+// ── 로그인 상태 감지 ─────────────────────────────────────
+onAuthStateChanged(auth, (user) => {
+  window._currentUser = user;
+  window._isAdmin = user && user.email === ADMIN_EMAIL;
+  if(window._updateAuthUI) window._updateAuthUI();
 });
 
-// 전역 DB 함수 노출
+// ── Firestore 동기화 ─────────────────────────────────────
+onSnapshot(placesCol, (snapshot) => {
+  PLACES = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+  if(document.getElementById('page-admin')?.classList.contains('active')) renderAdmin();
+});
+
+// ── DB 함수 (관리자 전용) ────────────────────────────────
 window._fbSave = async (p) => {
+  if(!window._isAdmin) {
+    alert('관리자만 저장할 수 있어요');
+    return;
+  }
   await setDoc(doc(db, 'places', p.id), p);
 };
 window._fbDelete = async (id) => {
+  if(!window._isAdmin) {
+    alert('관리자만 삭제할 수 있어요');
+    return;
+  }
   await deleteDoc(doc(db, 'places', id));
 };
 window._fbSeedAll = async () => {
+  if(!window._isAdmin) {
+    alert('관리자만 사용 가능해요');
+    return;
+  }
   for(const p of SEED_PLACES) {
     await setDoc(doc(db, 'places', p.id), p);
   }
@@ -563,138 +623,53 @@ window._fbSeedAll = async () => {
 </script>
 
 <script>
-// ── 초기 데이터 ─────────────────────────────────────────
-// 초기 시드 데이터 (최초 1회 Firebase 업로드용)
-const SEED_PLACES = [
-  {id:'p1',name:'오브젝트 서교점',cat:'souvenir',area:'홍대·상수',address:'마포구 와우산로35길 13',station:'홍대입구역 2번 출구 도보 5분',time:35,hours:'12:00~21:00',tip:'4층 전부 돌기. 매달 작가 콜라보 전시 바뀜',url:'instagram.com/object_official',who:['alone','friend','date'],env:['indoor','photo','trendy'],price:'mid',verified:'2025-03',active:true},
-  {id:'p2',name:'수바코',cat:'souvenir',area:'홍대·상수',address:'마포구 동교동 177-22',station:'홍대입구역 6번 출구 앞',time:25,hours:'12:00~22:00',tip:'현금만 가능! 싸이월드 감성 스티커 사진기 있음',who:['alone','friend'],env:['indoor','retro','photo'],price:'low',verified:'2025-02',active:true},
-  {id:'p3',name:'리틀리들',cat:'souvenir',area:'홍대·상수',address:'마포구 와우산로37길 42',station:'홍대입구역 도보 7분',time:25,hours:'13:00~21:00 (월 휴무)',tip:'인스타 @littleriddle_store 팝업 미리 확인',who:['alone','friend','date'],env:['indoor','retro','quiet'],price:'mid',verified:'2025-01',active:true},
-  // 홍대·상수
-  {id:'p4',name:'이음(ium) 1966',cat:'cafe',area:'홍대·상수',address:'마포구 와우산로29바길 15',station:'홍대입구역 도보 8분',time:35,hours:'11:00~19:00 (일 휴무)',tip:'일요일 휴무. 코이 연못 있는 한옥 카페. 전통 음료 추천',who:['alone','date'],env:['indoor','photo','korean','quiet'],price:'low',verified:'2025-04',active:true},
-  {id:'p5',name:'땡스북스',cat:'book',area:'홍대·상수',address:'마포구 와우산로 21',station:'홍대입구역 도보 5분',time:25,hours:'13:00~21:00',tip:'큐레이션 탁월한 1세대 독립서점. 카드 결제 가능',who:['alone','friend'],env:['indoor','quiet'],price:'low',verified:'2025-03',active:true},
-  {id:'p7',name:'Analog Garden',cat:'cafe',area:'홍대·상수',address:'마포구 동교로 145',station:'홍대입구역 도보 6분',time:35,hours:'09:00~17:00',tip:'9시 오픈. 채소 위주 브런치. 아침 일찍 가면 여유로움',who:['alone','friend','date'],env:['indoor','outdoor','quiet','photo'],price:'mid',verified:'2025-03',active:true},
-  {id:'p8',name:'오디너리 커피',cat:'cafe',area:'홍대·상수',address:'마포구 서교동 331-2',station:'홍대입구역 도보 8분',time:30,hours:'11:00~22:00 (월 휴무)',tip:'자체 로스팅 원두. 혼자 가기 딱 좋은 크기',who:['alone','friend'],env:['indoor','quiet','trendy'],price:'low',verified:'2025-04',active:true},
-  {id:'p25',name:'앤트러사이트 홍대',cat:'cafe',area:'홍대·상수',address:'마포구 독막로26길 9',station:'홍대입구역 도보 10분',time:35,hours:'09:00~23:00',tip:'폐공장 개조 대형 카페. 루프탑도 있음. 날씨 좋을 때 최고',who:['alone','friend','date'],env:['indoor','outdoor','retro','photo','trendy'],price:'mid',verified:'2025-03',active:true},
-  {id:'p26',name:'문래방구',cat:'stationery',area:'홍대·상수',address:'마포구 창전동 일대',station:'홍대입구역·신촌역 사이 도보',time:25,hours:'방문 전 인스타 @allwrite_official 확인',tip:'기록광을 위한 문구 브랜드 올라이트 운영. 다이어리·노트 시그니처',who:['alone','friend'],env:['indoor','quiet'],price:'low',verified:'2025-02',active:true},
-  // 연남동
-  {id:'p6',name:'유어마인드',cat:'book',area:'연남동',address:'서대문구 연희로11라길 10-6 2층',station:'홍대입구역 도보 15분',time:25,hours:'13:00~20:00 매일',tip:'독립출판물 전문. 인스타 재입고 공지 체크 후 방문',who:['alone','friend'],env:['indoor','quiet','retro'],price:'low',verified:'2025-02',active:true},
-  {id:'p9',name:'도트블랑킷 연남점',cat:'cafe',area:'연남동',address:'마포구 양화로23길 28',station:'합정역 도보 8분',time:35,hours:'09:30~20:00',tip:'창가 자리 요청하기. 오픈샌드위치 시그니처',who:['alone','date'],env:['indoor','photo','trendy'],price:'mid',verified:'2025-03',active:true},
-  {id:'p27',name:'경의선숲길 연남동 구간',cat:'walk',area:'연남동',address:'마포구 연남동 경의선숲길',station:'홍대입구역 3번 출구 도보 5분',time:30,hours:'상시',tip:'평일 오후가 가장 한적. 걸으면서 카페·소품샵 자연스럽게 발견하는 재미',who:['alone','friend','date','family'],env:['outdoor','quiet','photo','free'],price:'free',verified:'2026-03',active:true},
-  // 연희동 (2026 트렌드 핫 동네)
-  {id:'p28',name:'포셋',cat:'stationery',area:'연희동',address:'서대문구 연희동',station:'홍대입구역 버스 or 도보 20분',time:25,hours:'방문 전 인스타 확인',tip:'엽서 3200여 종 보유. 엽서 박물관이라는 표현이 딱 맞음. 1000~5000원대',who:['alone','friend','date'],env:['indoor','quiet','photo'],price:'low',verified:'2025-09',active:true},
-  {id:'p29',name:'올라이트',cat:'stationery',area:'연희동',address:'마포구 창전동 (연희·창전 경계)',station:'신촌역·홍대입구역 사이 도보',time:25,hours:'오후에만 운영. 방문 전 인스타 확인',tip:'다이어리·노트·문구 디자인 브랜드 직영샵. 기록 좋아하면 지갑 조심',who:['alone','friend'],env:['indoor','quiet'],price:'low',verified:'2025-02',active:true},
-  {id:'p30',name:'공장(FACTORY)',cat:'stationery',area:'연희동',address:'서대문구 연희동',station:'홍대입구역 버스 or 도보',time:25,hours:'방문 전 인스타 @factory_official 확인',tip:'고양이 그림 디자인 문구 많음. 연희동 길고양이에서 영감받은 귀여운 디자인',who:['alone','friend'],env:['indoor','quiet'],price:'low',verified:'2025-03',active:true},
-  {id:'p31',name:'라우터커피',cat:'cafe',area:'연희동',address:'서대문구 연희동 골목',station:'홍대입구역 버스 이동',time:35,hours:'방문 전 인스타 확인',tip:'연희동 커피 애호가 1순위. 50종 이상 원두. 언덕 골목 안 숨은 로컬 카페',who:['alone','friend'],env:['indoor','quiet','trendy'],price:'low',verified:'2025-04',active:true},
-  {id:'p32',name:'글월',cat:'stationery',area:'연희동',address:'서대문구 연희동',station:'홍대입구역 버스 이동',time:20,hours:'방문 전 인스타 확인',tip:'편지·엽서 관련 소품 전문. 허름한 건물 계단 올라가면 나오는 숨은 공간',who:['alone','friend','date'],env:['indoor','quiet','photo'],price:'low',verified:'2025-11',active:true},
-  // 성수
-  {id:'p10',name:'어니언 성수',cat:'cafe',area:'성수',address:'성동구 아차산로9길 8',station:'성수역 도보 5분',time:35,hours:'08:00~22:00',tip:'주말 웨이팅 필수. 평일 오전 11시 전 추천',who:['alone','friend','date'],env:['indoor','outdoor','photo','retro','trendy'],price:'mid',verified:'2025-04',active:true},
-  {id:'p11',name:'오르에르',cat:'souvenir',area:'성수',address:'성동구 성수이로7길 27',station:'성수역 도보 8분',time:30,hours:'11:00~20:00',tip:'2층까지 꼭 올라가기. 그릇·패브릭·오브제 감성 편집샵',who:['alone','friend','date'],env:['indoor','photo','trendy'],price:'mid',verified:'2025-03',active:true},
-  {id:'p12',name:'대림창고',cat:'cafe',area:'성수',address:'성동구 성수이로7길 29',station:'성수역 도보 8분',time:30,hours:'09:00~22:00',tip:'창고 개조 대형 카페. 성수 레트로 감성 1번지',who:['friend','date'],env:['indoor','photo','retro','trendy'],price:'mid',verified:'2025-02',active:true},
-  {id:'p33',name:'카멜커피',cat:'cafe',area:'성수',address:'성동구 연무장길 일대',station:'성수역 도보 10분',time:30,hours:'10:00~22:00',tip:'스페셜티 원두. 조용하게 커피 집중하기 좋음. 노트북 작업 가능',who:['alone','friend'],env:['indoor','quiet','trendy'],price:'low',verified:'2025-03',active:true},
-  {id:'p34',name:'성수 수제화거리',cat:'walk',area:'성수',address:'성동구 성수역 4번 출구 연무장길',station:'성수역 4번 출구',time:25,hours:'평일 운영',tip:'수제화 장인 작업실·쇼룸 골목. 성수 감성 탐방 코스로 딱',who:['alone','friend'],env:['outdoor','retro','free'],price:'free',verified:'2026-01',active:true},
-  // 을지로
-  {id:'p13',name:'커피한약방',cat:'cafe',area:'을지로',address:'중구 을지로 137-1',station:'을지로3가역 5번 출구 도보 3분',time:30,hours:'11:00~22:00',tip:'한약방 건물 그대로 살린 카페. 한방 음료 추천',who:['alone','friend','date'],env:['indoor','retro','photo'],price:'low',verified:'2025-02',active:true},
-  {id:'p14',name:'마인띵스',cat:'souvenir',area:'을지로',address:'중구 수표로 32-1 2층',station:'을지로3가역 11번 출구 도보 5분',time:25,hours:'12:00~19:30 (월~토), 일 ~18:00',tip:'바로 윗층 제로띵스(친환경 소품)도 함께 방문',who:['alone','friend','date'],env:['indoor','trendy'],price:'mid',verified:'2025-03',active:true},
-  {id:'p15',name:'세운상가 옥상',cat:'walk',area:'을지로',address:'종로구 청계천로 159',station:'을지로3가역 도보 10분',time:20,hours:'상시',tip:'무료 개방. 남산+종묘 동시 뷰. 엘리베이터 이용',who:['alone','friend','date'],env:['outdoor','photo','free','night'],price:'free',verified:'2025-01',active:true},
-  {id:'p35',name:'을지로 골목 벽화투어',cat:'walk',area:'을지로',address:'을지로 3·4가 철공소 골목',station:'을지로3가역 주변',time:25,hours:'주말 추천 (철공소 셔터 닫힌 날 벽화 잘 보임)',tip:'철공소 대문에 그려진 그라피티가 사진 소재. 골목 자체가 포토존',who:['alone','friend','date'],env:['outdoor','retro','photo','free'],price:'free',verified:'2026-02',active:true},
+// ── 초기 데이터 (생략 — 솔님 기존 SEED_PLACES 그대로 유지) ───
+const SEED_PLACES = []; // 이미 Firestore에 데이터 있으므로 빈 배열로 둬도 OK
 
-  {id:'p91',name:'챔프커피 제3작업실',cat:'cafe',area:'을지로',address:'중구 을지로 157 대림상가 3층 라열 381호',station:'을지로4가역 1번 출구 도보 3분',time:30,hours:'매일 11:00~19:00',tip:'세운·대림상가 카페 성지. 라테류 반응이 좋아 을지로 카페 키워드에서 자주 보이는 편',who:['alone','friend','date'],env:['indoor','outdoor','retro','trendy','photo'],price:'low',verified:'2026-04',active:true},
-  {id:'p92',name:'호랑이',cat:'cafe',area:'을지로',address:'중구 을지로 157 대림상가 3층 라열 351호',station:'을지로4가역 1번 출구 도보 3분',time:25,hours:'화~토 11:00~18:00 (일·월 휴무)',tip:'호랑이라떼 시그니처. 대림상가 바깥 데크 쪽이라 찾는 재미까지 있는 대표 힙지로 카페',who:['alone','friend','date'],env:['indoor','outdoor','retro','trendy','photo'],price:'low',verified:'2026-04',active:true},
-  {id:'p93',name:'페이퍼크레인',cat:'bakery',area:'을지로',address:'중구 마른내로2길 14',station:'을지로3가역 10번 출구 도보 3분',time:30,hours:'매일 09:00~21:00',tip:'소금빵·크로핀 쪽 언급이 많음. 2~3층 좌석이 있어 코스 중간 휴식용으로 쓰기 좋음',who:['alone','friend','date','family'],env:['indoor','trendy','photo'],price:'low',verified:'2026-04',active:true},
-  {id:'p94',name:'라이팅룸',cat:'stationery',area:'을지로',address:'중구 퇴계로27길 40 4층',station:'을지로3가역 9번 출구 도보 5분',time:60,hours:'화~일 14:00~18:00 (예약제, 월 휴무)',tip:'읽고 쓰는 데 집중하는 기록 공간. 을지로 혼자 코스나 조용한 데이트 키워드와 궁합이 좋음',who:['alone','friend'],env:['indoor','quiet','trendy'],price:'low',verified:'2026-04',active:true},
-  {id:'p95',name:'을지로 노가리골목',cat:'walk',area:'을지로',address:'중구 을지로3가 4번 출구 일대',station:'을지로3가역 4번 출구',time:25,hours:'저녁 시간대 방문 추천',tip:'낮보다 해진 뒤가 훨씬 살아나는 야장 중심 골목. 밤 분위기 때문에 데이트·서울 야간 코스 검색에서 강함',who:['alone','friend','date'],env:['outdoor','retro','night','photo','free'],price:'free',verified:'2026-04',active:true},
-  {id:'p96',name:'방산종합시장',cat:'market',area:'을지로',address:'중구 동호로37길 20',station:'을지로4가역 4번 출구 도보 5분',time:35,hours:'매장별 상이 (평일·토 낮 추천)',tip:'포장재·종이·리본·베이킹 재료가 몰린 을지로식 시장 핫플. 소품·문구 좋아하면 체류 시간이 길어짐',who:['alone','friend'],env:['indoor','retro'],price:'low',verified:'2026-04',active:true},
-  {id:'p97',name:'을지로 셔터갤러리',cat:'gallery',area:'을지로',address:'을지로3가역 4번 출구 인근 공구·타일 골목',station:'을지로3가역 4번 출구 바로',time:20,hours:'저녁·주말 추천',tip:'낮에는 공구 골목, 문 닫는 시간 이후엔 셔터 위 공공미술이 살아나는 포토 스폿',who:['alone','friend','date'],env:['outdoor','retro','photo','free','night'],price:'free',verified:'2026-04',active:true},
-  {id:'p98',name:'딜리센트',cat:'souvenir',area:'을지로',address:'중구 청계천로 208-1 301호',station:'을지로4가역 4번 출구 도보 5분',time:60,hours:'월~금 10:00~22:00 / 일 10:00~16:00',tip:'향수·캔들 원데이클래스 공간. 소품샵만으로는 부족할 때 체험형 스팟으로 넣기 좋음',who:['alone','friend','date'],env:['indoor','trendy','photo'],price:'mid',verified:'2026-04',active:true},
-  {id:'p99',name:'피즈소셜클럽',cat:'cafe',area:'을지로',address:'중구 을지로35길 51-4 4층',station:'을지로4가역 4번 출구 도보 5분',time:35,hours:'화~일 11:30~20:00 (월 휴무)',tip:'LP 재즈와 에스프레소 중심의 차분한 카페. 방산시장 쪽 을지로의 조용한 결을 보여줌',who:['alone','friend','date'],env:['indoor','quiet','retro','trendy'],price:'mid',verified:'2026-04',active:true},
-  // 서촌
-  {id:'p16',name:'보안책방',cat:'book',area:'서촌',address:'종로구 효자로 33',station:'경복궁역 3번 출구 도보 5분',time:30,hours:'11:00~20:00 (월 휴무)',tip:'오래된 여관 개조. 공간 자체가 예술. 서촌 필수 코스',who:['alone','friend'],env:['indoor','quiet','photo','korean'],price:'low',verified:'2025-02',active:true},
-  {id:'p17',name:'통인시장 도시락 카페',cat:'market',area:'서촌',address:'종로구 통인길 38',station:'경복궁역 2번 출구 도보 8분',time:35,hours:'10:00~18:00 (월 휴무)',tip:'엽전 10개(5천원)로 반찬 직접 골라 도시락 완성',who:['alone','friend','family'],env:['indoor','korean','retro'],price:'low',verified:'2025-03',active:true},
-  {id:'p36',name:'올라이트 서촌점',cat:'stationery',area:'서촌',address:'종로구 경복궁 인근',station:'경복궁역 도보 10분',time:25,hours:'오후 운영. 방문 전 확인',tip:'엽서·다이어리·문구 전문. 경복궁역 인근 숨은 문구 명소',who:['alone','friend'],env:['indoor','quiet'],price:'low',verified:'2025-02',active:true},
-  {id:'p37',name:'서촌 골목 산책',cat:'walk',area:'서촌',address:'종로구 체부동·통인동 골목',station:'경복궁역 2번 출구',time:30,hours:'상시',tip:'한옥과 작은 카페가 섞인 조용한 골목. 북촌보다 관광객 적음',who:['alone','friend','date'],env:['outdoor','quiet','photo','korean','free'],price:'free',verified:'2026-03',active:true},
-  // 북촌·삼청동
-  {id:'p18',name:'북촌한옥마을 2경 골목',cat:'walk',area:'북촌·삼청동',address:'종로구 북촌로11길',station:'안국역 2번 출구 도보 10분',time:35,hours:'상시 (주거지역 오전 10시 이후)',tip:'오전 9~10시 골든타임. 평일 추천',who:['alone','friend','date','family'],env:['outdoor','photo','korean','quiet'],price:'free',verified:'2025-04',active:true},
-  {id:'p19',name:'삼청동 카페거리',cat:'cafe',area:'북촌·삼청동',address:'종로구 삼청로 일대',station:'안국역 1번 출구 도보 8분',time:35,hours:'골목 자유 탐방',tip:'골목 걸으며 눈에 드는 카페 들어가기',who:['alone','date','friend'],env:['indoor','outdoor','quiet','korean','photo'],price:'mid',verified:'2025-03',active:true},
-  {id:'p38',name:'인사동 쌈지길',cat:'souvenir',area:'인사동·종로',address:'종로구 인사동길 44',station:'안국역 6번 출구 도보 5분',time:30,hours:'10:30~20:30',tip:'나선형 구조의 복합문화공간. 수공예품·독립 브랜드 40여 개 입점',who:['alone','friend','date','family'],env:['indoor','outdoor','korean','photo'],price:'low',verified:'2026-01',active:true},
-  {id:'p39',name:'광장시장',cat:'market',area:'인사동·종로',address:'종로구 창경궁로 88',station:'종로5가역 8번 출구',time:35,hours:'08:00~23:00',tip:'마약김밥·육회·빈대떡 필수. 점심·저녁 시간대 활기참',who:['alone','friend','family'],env:['indoor','outdoor','retro','korean'],price:'low',verified:'2026-02',active:true},
-  // 망원동
-  {id:'p20',name:'망원시장',cat:'market',area:'망원동',address:'마포구 포은로8길 일대',station:'망원역 1번 출구 도보 5분',time:25,hours:'09:00~19:00 (점포마다 상이)',tip:'떡볶이·순대·호떡 필수. 점심 타임이 가장 활기차',who:['alone','friend','family'],env:['outdoor','retro','korean'],price:'low',verified:'2025-03',active:true},
-  {id:'p40',name:'당인리책발전소',cat:'book',area:'망원동',address:'마포구 당인로 78',station:'망원역 도보 10분',time:30,hours:'방문 전 인스타 확인',tip:'카페 겸 독립서점. 조용하고 아늑한 망원 로컬 감성',who:['alone','friend'],env:['indoor','quiet'],price:'low',verified:'2025-04',active:true},
-  // 문래동
-  {id:'p21',name:'러스트 베이커리',cat:'bakery',area:'문래동',address:'영등포구 도림로 128나길 10',station:'문래역 도보 10분',time:20,hours:'09:00~21:00',tip:'폐공장 개조 베이커리. 크루아상·프레첼 추천',who:['alone','friend','date'],env:['indoor','retro','photo'],price:'low',verified:'2025-02',active:true},
-  {id:'p22',name:'행운다방',cat:'cafe',area:'문래동',address:'영등포구 도림로133길 9 2층',station:'문래역 도보 8분',time:30,hours:'평일 12:00~22:00 / 주말 11:30~',tip:'클로버 모나카 필수 주문. 주말 웨이팅 있음',who:['alone','friend','date'],env:['indoor','retro','photo'],price:'low',verified:'2025-04',active:true},
-  {id:'p24',name:'바이바이바이',cat:'souvenir',area:'문래동',address:'영등포구 도림로128가길 내',station:'문래역 도보 10분',time:25,hours:'방문 전 인스타 확인',tip:'문래창작촌 뾰족 지붕 단층집. 전국 작가 소품 편집샵',who:['alone','friend','date'],env:['indoor','quiet','retro'],price:'mid',verified:'2025-02',active:true},
-  {id:'p41',name:'문래방구',cat:'stationery',area:'문래동',address:'영등포구 문래창작촌',station:'문래역 도보 10분',time:25,hours:'방문 전 확인',tip:'카페+문구+가죽공방. 문래창작촌 초창기부터 함께한 복합공간',who:['alone','friend'],env:['indoor','retro'],price:'low',verified:'2025-01',active:true},
-  // 창신동
-  {id:'p23',name:'낙산공원',cat:'walk',area:'창신동',address:'종로구 낙산길 41',station:'혜화역 2번 출구 도보 15분',time:35,hours:'상시',tip:'해질녘 서울 야경 명소. 무료 입장',who:['alone','friend','date'],env:['outdoor','photo','free','night','quiet'],price:'free',verified:'2025-04',active:true},
-  // 삼각지·용리단길 (2025-2026 뜨는 동네)
-  {id:'p42',name:'코르츠',cat:'cafe',area:'삼각지·용리단길',address:'용산구 백범로77길 61 1층',station:'삼각지역 5번 출구 도보 5분',time:30,hours:'평일 10:00~18:00 (월 휴무)',tip:'교토 Style Coffee 공식 파트너. 커피 마니아들의 성지',who:['alone','friend'],env:['indoor','quiet','trendy'],price:'low',verified:'2025-04',active:true},
-  {id:'p43',name:'드립쏘',cat:'cafe',area:'삼각지·용리단길',address:'용산구 백범로77길 61 1층',station:'삼각지역 도보 5분',time:25,hours:'10:00~20:00 (월 휴무)',tip:'한남수퍼 건물 개조. 호라이즌 블루 블렌드 드립 커피 추천',who:['alone','friend'],env:['indoor','quiet','retro'],price:'low',verified:'2025-04',active:true},
-  {id:'p44',name:'용리단길 골목 산책',cat:'walk',area:'삼각지·용리단길',address:'용산구 용산2가동 일대',station:'삼각지역 주변',time:25,hours:'상시',tip:'성수보다 덜 붐비는 로컬 감성. 개성 있는 카페·공방이 골목마다',who:['alone','friend','date'],env:['outdoor','trendy','photo','free'],price:'free',verified:'2026-03',active:true},
-  // 해방촌 (2025-2026 핫 동네)
-  {id:'p45',name:'카페 fwd',cat:'cafe',area:'해방촌',address:'용산구 해방촌로 일대',station:'녹사평역 도보 10분',time:30,hours:'방문 전 인스타 @cafefwd 확인',tip:'빈티지 의류샵 FWD에서 런칭한 카페. 쇼룸 겸용',who:['alone','friend','date'],env:['indoor','retro','trendy','photo'],price:'low',verified:'2026-01',active:true},
-  {id:'p46',name:'해방촌 골목 탐방',cat:'walk',area:'해방촌',address:'용산구 신흥로 일대',station:'녹사평역 2번 출구',time:30,hours:'상시',tip:'이태원 바로 옆이지만 완전 다른 로컬 분위기. 남산 뷰 포인트 있음',who:['alone','friend','date'],env:['outdoor','quiet','photo','free','retro'],price:'free',verified:'2026-01',active:true},
-  // 한남·이태원
-  {id:'p47',name:'북바인더스 한남',cat:'book',area:'한남·이태원',address:'용산구 한남동',station:'한강진역 도보 5분',time:25,hours:'방문 전 확인',tip:'독립서점+문구+라이프스타일. 한남 감도 높은 공간',who:['alone','friend','date'],env:['indoor','quiet','trendy'],price:'low',verified:'2025-03',active:true},
-  {id:'p48',name:'이태원 앤틱가구거리',cat:'souvenir',area:'한남·이태원',address:'용산구 이태원로 일대',station:'이태원역 1번 출구',time:30,hours:'평일 낮 운영',tip:'빈티지 가구·소품 가게들이 골목에 밀집. 구경만 해도 재밌음',who:['alone','friend'],env:['indoor','outdoor','retro'],price:'mid',verified:'2025-01',active:true},
-  // 신당동 (뜨는 동네)
-  // 창신동 — 검색으로 새로 추가
-  {id:'p51',name:'카페 테르트르',cat:'cafe',area:'창신동',address:'종로구 낙산5길 46',station:'혜화역 마을버스 종로03 탑승 → 정류소 도보 4분',time:40,hours:'매일 11:30~22:30',tip:'창신동 언덕 꼭대기 서울 파노라마 뷰 카페. 해질녘 노을·야경이 진짜. 1인 1음료 필수',who:['alone','friend','date'],env:['indoor','photo','night'],price:'mid',verified:'2026-04',active:true},
-  {id:'p52',name:'HAUKE',cat:'cafe',area:'창신동',address:'종로구 낙산 성곽길 인근',station:'혜화역 도보 20분 or 마을버스',time:30,hours:'방문 전 인스타 확인',tip:'일제강점기 적산가옥 개조 카페. 크록스 케이크 시그니처. 지도 보고 가야 찾음',who:['alone','friend','date'],env:['indoor','photo','retro','korean'],price:'mid',verified:'2025-10',active:true},
-  {id:'p53',name:'창신동 완구·문구 도매거리',cat:'market',area:'창신동',address:'종로구 창신동 일대',station:'동대문역 4번 출구 or 동묘앞역 6·7번 출구',time:35,hours:'평일 낮 운영 (주말 오전 일찍 방문 추천)',tip:'Z세대 말랑이 성지! 스퀴시·스트레스볼·왁뿌볼 2000~3000원대. 피규어·희귀 캐릭터 굿즈도. 동묘 빈티지 구경 후 이곳 오는 코스가 MZ 필수 루트',who:['alone','friend','date'],env:['indoor','retro','trendy'],price:'low',verified:'2026-04',active:true},
-  {id:'p68',name:'동대문 종합시장 부자재 상가',cat:'stationery',area:'동대문',address:'종로구 종로 6가 동대문종합시장 5층',station:'동대문역 9번 출구 도보 1분',time:45,hours:'월~토 08:00~18:00 (일 휴무, 평일 오전 방문 추천)',tip:'2026 초 볼꾸(볼펜꾸미기) 오픈런 성지. 볼펜대 600~1000원+파츠 조합해서 3000~5000원이면 나만의 볼펜 완성. 캐릭터 비즈·참·미니피겨 가득. 재고 빨리 소진되니 오전 방문 필수',who:['alone','friend','date'],env:['indoor','trendy'],price:'low',verified:'2026-04',active:true},
-  // 망원동 — 검색으로 새로 추가
-  {id:'p54',name:'제로스페이스',cat:'souvenir',area:'망원동',address:'마포구 희우정로16길 32 조광빌딩 1층',station:'망원역 2번 출구 도보 5분',time:25,hours:'방문 전 인스타 @zeroperozero 확인',tip:'그래픽 디자인 스튜디오 제로퍼제로 쇼룸. 다양한 작가 그래픽 굿즈. 전시회 온 느낌',who:['alone','friend','date'],env:['indoor','trendy','quiet'],price:'mid',verified:'2025-08',active:true},
-  {id:'p55',name:'수바코 망원점',cat:'souvenir',area:'망원동',address:'마포구 희우정로20길 66 상가1층 2호',station:'망원역 2번 출구 도보 5분',time:25,hours:'12:00~20:30 (화·일 늦게 오픈)',tip:'빈티지 소품+팬시+문구. 일본 간식도 판매. 망원 소품 투어 필수 코스',who:['alone','friend','date'],env:['indoor','retro','photo'],price:'low',verified:'2025-06',active:true},
-  {id:'p56',name:'아우어리틀룸',cat:'souvenir',area:'망원동',address:'마포구 망원로8길 73 1층',station:'망원역 1번 출구 도보 7분',time:25,hours:'화수목 13:30~19:30 / 금토일 13:00~21:00 / 월 휴무',tip:'인테리어 소품 전문. 집꾸미기 아이템 가득. 주변에 소품샵 더 몰려있어 코스로 좋음',who:['alone','friend','date'],env:['indoor','quiet','trendy'],price:'mid',verified:'2025-05',active:true},
-  {id:'p57',name:'올웨이즈 어거스트 로스터스',cat:'cafe',area:'망원동',address:'마포구 망리단길 일대',station:'망원역 도보 10분',time:30,hours:'방문 전 인스타 확인',tip:'레트로 무드 우디 플랜테리어 카페. 에스프레소 바 + 디저트. 망원 인증샷 핫플',who:['alone','friend','date'],env:['indoor','retro','photo','trendy'],price:'mid',verified:'2025-07',active:true},
-  {id:'p58',name:'망원동 소품샵 골목',cat:'walk',area:'망원동',address:'마포구 망원역 2번 출구 일대 골목',station:'망원역 2번 출구',time:30,hours:'상시',tip:'제로스페이스·수바코·아우어리틀룸이 도보 5분 안에 모여있음. 골목 자체가 코스',who:['alone','friend','date'],env:['outdoor','retro','free'],price:'free',verified:'2026-03',active:true},
-  {id:'p49',name:'신당창작아케이드',cat:'gallery',area:'신당동',address:'중구 다산로34길 28',station:'동대문역사문화공원역 도보 5분',time:30,hours:'10:00~19:00 (월 휴무)',tip:'젊은 예술가들의 작업실+전시공간. 무료 관람. 성수 초창기 감성',who:['alone','friend'],env:['indoor','free','quiet','retro'],price:'free',verified:'2025-03',active:true},
-  {id:'p50',name:'중앙시장',cat:'market',area:'신당동',address:'중구 다산로 일대',station:'약수역·동대입구역 주변',time:25,hours:'낮 시간대 운영',tip:'신당 로컬 감성 재래시장. 떡볶이 원조 골목 근처',who:['alone','friend','family'],env:['outdoor','korean','retro'],price:'low',verified:'2025-02',active:true},
-  // 동대문 (새로 추가)
-  {id:'p59',name:'DDP 동대문디자인플라자',cat:'exhibit',area:'동대문',address:'중구 을지로 281',station:'동대문역사문화공원역 1번 출구 바로',time:50,hours:'10:00~21:00 (전시별 상이)',tip:'자하 하디드 설계 우주선 건물. 무료 전시 자주 열림. 야간 LED 장미광장이 포토존 끝판왕',who:['alone','friend','date','family'],env:['indoor','outdoor','photo','free','night','trendy'],price:'free',verified:'2026-04',active:true},
-  {id:'p60',name:'동묘 벼룩시장',cat:'market',area:'동대문',address:'종로구 숭인동 동묘앞역 일대',station:'동묘앞역 1번 출구 바로',time:40,hours:'매일 10:00~18:00 (일찍 갈수록 좋음)',tip:'서울 최대 구제·빈티지 성지. 1000원~5000원 레어 아이템 발굴 가능. 구경만 해도 재밌음',who:['alone','friend'],env:['outdoor','retro','free'],price:'low',verified:'2026-02',active:true},
-  {id:'p61',name:'DDP 디자인장터·편집샵',cat:'souvenir',area:'동대문',address:'중구 을지로 281 DDP 살림터',station:'동대문역사문화공원역 1번 출구',time:25,hours:'11:00~20:00',tip:'DDP 내부 디자인 편집샵·아트샵. 기념품부터 국내 디자이너 소품까지. 전시 보고 이어서 구경',who:['alone','friend','date'],env:['indoor','trendy','photo'],price:'mid',verified:'2026-01',active:true},
-  {id:'p62',name:'청계천 산책로',cat:'walk',area:'동대문',address:'청계천로 일대 (동대문~광교)',station:'동대문역사문화공원역에서 청계천 진입',time:30,hours:'상시',tip:'동대문에서 청계천 따라 걸으면 자연스럽게 을지로 방향 이동 가능. 야간 야경 산책 추천',who:['alone','friend','date','family'],env:['outdoor','night','free','quiet'],price:'free',verified:'2026-03',active:true},
-  // 남대문·회현 (새로 추가)
-  {id:'p63',name:'남대문시장',cat:'market',area:'남대문·회현',address:'중구 남대문시장4길 21',station:'회현역 5번 출구 도보 2분',time:40,hours:'매일 새벽~오후 (점포마다 상이, 야간동도 운영)',tip:'갈치조림·호떡·닭꼬치 필수. 귀여운 캐릭터 소품 도매 코너도 있음. 평일 오전 가장 활기참',who:['alone','friend','family'],env:['indoor','outdoor','retro','korean'],price:'low',verified:'2026-03',active:true},
-  {id:'p64',name:'구덴구덴',cat:'cafe',area:'남대문·회현',address:'중구 퇴계로8길 49-27',station:'회현역 3번 출구 도보 7분 (골목 계단 옆)',time:35,hours:'방문 전 인스타 확인 (지도 보고 가야 찾음)',tip:'남산 아래 숨겨진 산장 감성 카페. 핸드드립 5종. 시나몬 토스트 강추. 길 찾는 재미 있음',who:['alone','friend','date'],env:['indoor','quiet','retro','photo'],price:'low',verified:'2025-12',active:true},
-  {id:'p65',name:'스틸북스',cat:'book',area:'남대문·회현',address:'중구 퇴계로 38 3층 (로컬스티치 회현)',station:'회현역 4번 출구 도보 1분',time:30,hours:'방문 전 확인',tip:'도시 크리에이터를 위한 큐레이션 서점. 일·삶·흥·쉼 테마별 서가 구성. 남대문 감성과 딴판인 힙함',who:['alone','friend'],env:['indoor','quiet','trendy'],price:'low',verified:'2025-11',active:true},
-  {id:'p66',name:'피크닉(piknic)',cat:'exhibit',area:'남대문·회현',address:'중구 퇴계로4길 21 2~4층',station:'회현역 4번 출구 도보 1분',time:40,hours:'방문 전 전시일정 확인',tip:'제약회사 건물 개조. 1층 소품샵+카페, 2층 전시, 4층 루프탑. 전시 따라 분위기 완전 달라짐',who:['alone','friend','date'],env:['indoor','photo','trendy'],price:'mid',verified:'2025-08',active:true},
-  {id:'p67',name:'남산공원 산책',cat:'walk',area:'남대문·회현',address:'중구 회현동 남산공원',station:'회현역 4번 출구 도보 10분',time:40,hours:'상시',tip:'남산 케이블카 탑승 or 도보. 서울 뷰 무료. 야경 포인트 다양. 벚꽃 시즌에 특히 좋음',who:['alone','friend','date','family'],env:['outdoor','photo','free','night','quiet'],price:'free',verified:'2026-03',active:true},
-  // 익선동·서순라길 (네이버 블로그 검색 활발)
-  {id:'p69',name:'익선동 한옥카페거리',cat:'walk',area:'익선동·서순라길',address:'종로구 익선동 일대',station:'종로3가역 5번 출구 도보 3분',time:40,hours:'상시 (가게별 상이)',tip:'1920년대 한옥 골목에 카페·소품샵·야장이 공존. 낮과 밤 분위기 완전 다름. 평일 오전이 한산하고 사진 잘 나옴',who:['alone','friend','date','family'],env:['outdoor','indoor','photo','korean','retro','night'],price:'low',verified:'2026-04',active:true},
-  {id:'p70',name:'카페 낙원역',cat:'cafe',area:'익선동·서순라길',address:'종로구 삼일대로26길 16',station:'종로3가역 도보 3분',time:35,hours:'방문 전 인스타 확인',tip:'한옥 안에 기찻길이 놓인 이색 카페. 컨베이어 벨트로 디저트 나옴. 블랙차콜 스콘 시그니처. 포토존으로 유명',who:['friend','date'],env:['indoor','photo','retro','korean'],price:'mid',verified:'2025-11',active:true},
-  {id:'p71',name:'서순라길',cat:'walk',area:'익선동·서순라길',address:'종로구 서순라길 (종묘 서쪽 담장길)',station:'종로3가역 7번 출구 도보 5분',time:30,hours:'주말 차없는거리 운영 10:00~18:00 추천',tip:'종묘 담장 따라 이어진 공예 특화거리. 주얼리 공방+한옥 카페. 주말에 차 막고 야장. 낮밤 모두 예쁜 포토존',who:['alone','friend','date'],env:['outdoor','photo','korean','retro','night','free'],price:'free',verified:'2026-04',active:true},
-  {id:'p72',name:'미담헌',cat:'cafe',area:'익선동·서순라길',address:'종로구 익선동 골목',station:'종로3가역 도보 5분',time:35,hours:'방문 전 확인',tip:'100년 넘은 한옥 두 채를 합친 대형 한옥카페. 마당 테이블에서 햇살 맞으며 전통차 마시기. 익선동 가면 꼭 들를 곳',who:['alone','friend','date'],env:['indoor','outdoor','quiet','korean','photo'],price:'low',verified:'2025-09',active:true},
-  // 송리단길 (잠실·석촌호수, 핫플 유망주)
-  {id:'p73',name:'송리단길 산책',cat:'walk',area:'송리단길',address:'송파구 송파나루역~석촌역 일대',station:'송파나루역 1번 출구 or 석촌역 1번 출구',time:30,hours:'상시',tip:'석촌호수 따라 이어진 감성 카페·소품샵 골목. 성수보다 덜 붐빔. 봄 벚꽃 시즌 최고 인기',who:['alone','friend','date'],env:['outdoor','photo','trendy','free'],price:'free',verified:'2026-03',active:true},
-  {id:'p74',name:'석촌호수 산책',cat:'walk',area:'송리단길',address:'송파구 석촌호수',station:'석촌역 3번 출구 바로',time:35,hours:'상시',tip:'봄 벚꽃 시즌 서울 최고 핫플. 호수 한 바퀴 약 2.5km. 야간 조명도 예쁨. 주변 카페 투어와 연결',who:['alone','friend','date','family'],env:['outdoor','photo','free','night','quiet'],price:'free',verified:'2026-03',active:true},
-  {id:'p75',name:'소품샵거리 송리단길',cat:'souvenir',area:'송리단길',address:'송파구 송파나루역~석촌역 골목',station:'석촌역·송파나루역 사이',time:30,hours:'개별 가게 확인',tip:'성수 감성 소품샵들이 석촌 쪽으로 확장 중. 아직 덜 알려져서 주말에도 여유롭게 구경 가능',who:['alone','friend','date'],env:['indoor','trendy','quiet'],price:'mid',verified:'2026-02',active:true},
-  // 솔님 블로그(ssmium.tistory.com) 직접 다녀온 곳
-  {id:'p76',name:'미피스토어 서울',cat:'souvenir',area:'성수',address:'성동구 연무장13길 5',station:'성수역 도보 10분',time:35,hours:'10:00~20:00 매일',tip:'솔님이 블로그에 직접 다녀온 곳 ✍️ 국내 최대 55평 규모. 성수 한정 자개에디션+서울에디션 굿즈. 오픈런 각오 필요',who:['alone','friend','date'],env:['indoor','photo','trendy'],price:'mid',verified:'2026-03',active:true},
-  {id:'p77',name:'뚱랑이 29홈',cat:'souvenir',area:'성수',address:'성동구 성수동 일대',station:'성수역 도보 5분',time:25,hours:'방문 전 인스타 확인',tip:'솔님이 블로그에 직접 다녀온 곳 ✍️ 뚱랑이 캐릭터 굿즈 편집샵. 성수 감성 캐릭터샵',who:['alone','friend','date'],env:['indoor','photo','trendy'],price:'mid',verified:'2026-03',active:true},
-  {id:'p78',name:'리움미술관',cat:'gallery',area:'한남·이태원',address:'용산구 이태원로55길 60-16',station:'한강진역 1번 출구 도보 10분',time:60,hours:'10:00~18:00 (월·화 휴관)',tip:'솔님이 블로그에 직접 다녀온 곳 ✍️ 삼성재단 사립미술관. 상설+기획전시. 건물 자체가 예술. 국내 최고 수준 현대미술 컬렉션',who:['alone','friend','date'],env:['indoor','quiet','photo'],price:'mid',verified:'2026-03',active:true},
-
-  // 2026년 4월 추가 핫플
-  {id:'p79',name:'성수연방',cat:'souvenir',area:'성수',address:'성동구 성수이로14길 14',station:'성수역 3번 출구 도보 2분',time:35,hours:'매일 10:00~22:00 (매장별 상이)',tip:'소규모 브랜드 숍과 F&B가 모인 복합문화공간. 성수 메인 골목에서 바로 연결돼 첫 코스로 넣기 좋음',who:['alone','friend','date'],env:['indoor','outdoor','photo','trendy'],price:'mid',verified:'2026-04',active:true},
-  {id:'p80',name:'서울숲',cat:'walk',area:'성수',address:'성동구 뚝섬로 273',station:'서울숲역·뚝섬역 인근',time:45,hours:'상시',tip:'카페 코스 사이에 넣기 좋은 대형 공원. 벚꽃·단풍 시즌 체감 만족도가 특히 높음',who:['alone','friend','date','family'],env:['outdoor','photo','quiet','free'],price:'free',verified:'2026-04',active:true},
-  {id:'p81',name:'모노하 한남',cat:'souvenir',area:'한남·이태원',address:'용산구 독서당로 36',station:'한강진역 도보 10분 내외',time:30,hours:'화~일 11:00~19:30 (월 휴무)',tip:'공예·패션·라이프스타일 셀렉션이 강한 한남 대표 편집 공간. 조용하게 둘러보기 좋음',who:['alone','friend','date'],env:['indoor','quiet','photo','trendy'],price:'mid',verified:'2026-04',active:true},
-  {id:'p82',name:'페이스갤러리 서울',cat:'gallery',area:'한남·이태원',address:'용산구 이태원로 267',station:'한강진역 도보 8분 내외',time:45,hours:'화~토 10:00~18:00 (일·월 휴관)',tip:'국제 갤러리급 전시를 보기 좋은 공간. 리움과 묶으면 한남 아트 코스가 탄탄해짐',who:['alone','friend','date'],env:['indoor','quiet','photo','trendy'],price:'mid',verified:'2026-04',active:true},
-  {id:'p83',name:'스태프픽스',cat:'cafe',area:'서촌',address:'종로구 사직로9길 22',station:'경복궁역 도보 10분',time:35,hours:'11:00~20:00',tip:'야외 테라스와 큰 은행나무 뷰로 유명한 서촌 카페. 사진, 대화, 쉬는 시간 다 잘 맞음',who:['alone','friend','date'],env:['indoor','outdoor','photo','quiet'],price:'mid',verified:'2026-04',active:true},
-  {id:'p84',name:'카페 시노라 서촌',cat:'cafe',area:'서촌',address:'종로구 자하문로 116',station:'경복궁역 도보 5분',time:35,hours:'09:00~19:00 (월 휴무)',tip:'LP 음악과 우드톤 분위기가 강한 조용한 카페. 서촌 산책 코스의 쉼표로 쓰기 좋음',who:['alone','friend','date'],env:['indoor','quiet','retro'],price:'mid',verified:'2026-04',active:true},
-  {id:'p85',name:'대오서점',cat:'book',area:'서촌',address:'종로구 자하문로7길 55',station:'경복궁역 도보 8분',time:30,hours:'12:00~21:00',tip:'서울에서 가장 오래된 서점으로 알려진 공간. 카페 겸 운영되어 서촌의 정서를 느끼기 좋음',who:['alone','friend','date'],env:['indoor','quiet','retro','korean'],price:'low',verified:'2026-04',active:true},
-  {id:'p86',name:'더북소사이어티',cat:'book',area:'서촌',address:'종로구 자하문로19길 25 B1',station:'경복궁역 도보 8분',time:30,hours:'화~일 13:00~19:00 (월 휴무)',tip:'독립출판·아트북 큐레이션이 강한 서점 겸 프로젝트 공간. 디자인 감도 높은 이용자에게 특히 추천',who:['alone','friend'],env:['indoor','quiet','trendy'],price:'low',verified:'2026-04',active:true},
-  {id:'p87',name:'로우루프',cat:'cafe',area:'북촌·삼청동',address:'종로구 북촌로 46-1 1층',station:'안국역 2번 출구 도보 7분',time:35,hours:'화~일 10:00~20:00 (월 휴무)',tip:'북촌 한옥 뷰를 가까이서 즐기기 좋은 카페. 테라스 좌석 선호도가 높음',who:['alone','friend','date'],env:['indoor','outdoor','photo','korean'],price:'mid',verified:'2026-04',active:true},
-  {id:'p88',name:'오설록 티하우스 북촌',cat:'cafe',area:'북촌·삼청동',address:'종로구 북촌로 45',station:'안국역 2번 출구 도보 7분',time:40,hours:'월~목 11:00~20:00 / 금~일 11:00~21:00',tip:'북촌에서 가장 안정적으로 추천하기 좋은 티하우스. 말차·티 디저트 수요가 확실함',who:['alone','friend','date','family'],env:['indoor','photo','quiet','korean'],price:'mid',verified:'2026-04',active:true},
-  {id:'p89',name:'레인리포트 레인보우',cat:'cafe',area:'익선동·서순라길',address:'종로구 수표로28길 33-7',station:'종로3가역 4번 출구 도보 5분',time:35,hours:'10:30~20:30',tip:'한옥 처마 아래 비 내리는 연출로 유명한 포토 카페. 익선동 감성 코스에 잘 맞음',who:['friend','date'],env:['indoor','photo','korean','trendy'],price:'mid',verified:'2026-04',active:true},
-  {id:'p90',name:'실라당 익선',cat:'bakery',area:'익선동·서순라길',address:'종로구 돈화문로11다길 40 1층',station:'종로3가역 도보 5분',time:30,hours:'매일 10:30~21:00',tip:'한과·전통 디저트를 현대적으로 풀어낸 공간. 선물용 디저트나 한국적인 코스를 만들 때 좋음',who:['alone','friend','date','family'],env:['indoor','photo','korean'],price:'mid',verified:'2026-04',active:true},
-];
-
-// Firebase에서 실시간으로 채워짐 (초기엔 빈 배열)
+// Firebase에서 실시간으로 채워짐
 let PLACES = [];
-
 let editId = null;
+
+// ── 🔥 NEW: 인증 UI 업데이트 ──────────────────────────────
+function updateAuthUI() {
+  const user = window._currentUser;
+  const isAdmin = window._isAdmin;
+  const userArea = document.getElementById('userArea');
+  const adminTab = document.getElementById('tab-admin');
+
+  if(user) {
+    // 로그인 상태
+    userArea.innerHTML = `
+      <div class="user-info">
+        ${user.photoURL ? `<img src="${user.photoURL}" class="user-avatar" alt="${user.displayName}">` : ''}
+        <span class="user-name">${user.displayName || user.email}</span>
+        ${isAdmin ? '<span class="admin-badge">관리자</span>' : ''}
+      </div>
+      <button class="logout-btn" onclick="window._fbLogout()">로그아웃</button>
+    `;
+    // 관리자만 장소 관리 탭 표시
+    adminTab.style.display = isAdmin ? '' : 'none';
+  } else {
+    // 비로그인 상태
+    userArea.innerHTML = `
+      <button class="login-btn" onclick="window._fbLogin && window._fbLogin()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        구글 로그인
+      </button>
+    `;
+    adminTab.style.display = 'none';
+    // 관리자 페이지 보고 있었으면 홈으로
+    if(document.getElementById('page-admin').classList.contains('active')) {
+      showPage('hero');
+    }
+  }
+}
+window._updateAuthUI = updateAuthUI;
 
 // ── 상태 ────────────────────────────────────────────────
 const S = {time:0, who:'', areas:[], cats:[], env:[], budget:''};
@@ -702,6 +677,11 @@ let curStep = 0;
 
 // ── 페이지 전환 ──────────────────────────────────────────
 function showPage(name) {
+  // 🔥 NEW: 관리자 페이지는 관리자만 접근 가능
+  if(name === 'admin' && !window._isAdmin) {
+    alert('관리자만 접근 가능한 페이지예요');
+    return;
+  }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   if (name === 'hero' || name === 'wizard' || name === 'result') {
@@ -728,7 +708,6 @@ function renderProgress(n) {
 }
 
 function startWizard() {
-  // populate area chips from unique areas in data
   const areas = [...new Set(PLACES.filter(p=>p.active).map(p=>p.area))].sort();
   const c = document.getElementById('areaChips');
   c.innerHTML = '<div class="chip sel" data-s="3" data-v="any" onclick="pickArea(this)">🌏 상관없음</div>';
@@ -750,7 +729,6 @@ function ws(n) {
   document.getElementById('s'+n)?.classList.add('active');
   renderProgress(n);
   curStep = n;
-  // populate area filter after data loads
   if (n===3) {
     const sel = document.getElementById('filterArea');
     sel.innerHTML = '<option value="">전체 동네</option>';
@@ -794,22 +772,17 @@ function pickArea(el) {
   document.getElementById('n3')[hasSelection?'removeAttribute':'setAttribute']('disabled', true);
 }
 
-// ── 추천 로직 ────────────────────────────────────────────
+// ── 추천 로직 (그대로) ───────────────────────────────────
 const CAT_LABEL = {souvenir:'소품샵',stationery:'문구샵',cafe:'카페',bakery:'베이커리',exhibit:'전시·팝업',book:'독립서점',walk:'골목 산책',market:'시장',gallery:'갤러리'};
 const WHO_LABEL = {alone:'혼자',friend:'친구랑',date:'데이트',family:'가족'};
 const PRICE_ORDER = {free:0,low:1,mid:2,high:3};
 
-
 function recommend() {
   let pool = PLACES.filter(p => p.active);
-
-  // 하드 필터 — 동네는 절대 무시하지 않음
   const areaSelected = S.areas.length > 0;
   if(areaSelected) pool = pool.filter(p => S.areas.includes(p.area));
   if(S.who) pool = pool.filter(p => p.who.includes(S.who));
 
-  // 동네 고정 후 나머지 필터 단계적 완화
-  // 1단계: 예산+환경 모두 적용
   let strict = pool.filter(p => {
     if(S.budget==='free' && p.price!=='free') return false;
     if(S.budget==='low' && PRICE_ORDER[p.price]>1) return false;
@@ -819,7 +792,6 @@ function recommend() {
     if(S.env.includes('free') && p.price!=='free') return false;
     return true;
   });
-  // 2단계: 환경 조건이 너무 좁으면 예산만 유지
   if(strict.length < 2) {
     strict = pool.filter(p => {
       if(S.budget==='free' && p.price!=='free') return false;
@@ -827,32 +799,24 @@ function recommend() {
       return true;
     });
   }
-  // 3단계: 그래도 부족하면 동네 내 전체 (예산/환경 무시)
   if(strict.length < 1) strict = pool;
   pool = strict;
 
   const longCourse = S.time >= 240;
 
-  // 소프트 스코어링
   pool = pool.map(p => {
     let score = 0;
-    // 카테고리 매칭
     if(S.cats.includes(p.cat)) score += 40;
-    // 환경 태그 매칭
     const envMatch = S.env.filter(e => p.env.includes(e)).length;
     score += envMatch * 8;
-    // 동네 매칭 (선택한 동네)
     if(S.areas.includes(p.area)) score += 15;
-    // 긴 코스는 카페보다 둘러볼 스폿 우선
     if(longCourse && ['souvenir','stationery','book'].includes(p.cat)) score += 14;
     if(longCourse && ['gallery','exhibit','market','walk','bakery'].includes(p.cat)) score += 9;
     if(longCourse && p.cat==='cafe') score -= 18;
-    // 다양성
     score += Math.random() * 10;
     return {...p, score};
   }).sort((a,b) => b.score-a.score);
 
-  // 코스 조합 — 2시간 최소 3곳, 시간 남으면 더 추가
   const maxMin = S.time;
   const minTarget = maxMin<=60?2:maxMin<=120?3:maxMin<=180?4:maxMin<=240?5:6;
   const anchor = (longCourse ? pool.find(p => p.cat !== 'cafe') : null) || pool[0];
@@ -860,7 +824,7 @@ function recommend() {
 
   const selected = [anchor];
   let usedTime = anchor.time;
-  const WALK_DEFAULT = 8; // 넉넉한 기본 도보시간
+  const WALK_DEFAULT = 8;
   const mainCafeLimit = longCourse ? 0 : 1;
 
   function courseFitScore(p) {
@@ -882,12 +846,10 @@ function recommend() {
     usedTime += effectiveWalk + p.time;
   }
 
-  // 같은 동네 우선 정렬
   const sameArea = pool.slice(1).filter(p => p.id !== anchor.id && p.area === anchor.area).sort((a,b)=>courseFitScore(b)-courseFitScore(a));
   const otherArea = pool.slice(1).filter(p => p.id !== anchor.id && p.area !== anchor.area).sort((a,b)=>courseFitScore(b)-courseFitScore(a));
   const sortedRest = [...sameArea, ...otherArea];
 
-  // 최대한 채우기 — 긴 코스는 카페를 메인 타임라인에서 제외하고 스폿 위주로 구성
   for(const p of sortedRest) {
     if(selected.length >= Math.min(minTarget + 2, 8)) break;
     const cafeCount = selected.filter(x=>x.cat==='cafe').length;
@@ -902,13 +864,11 @@ function recommend() {
     }
   }
 
-  // 긴 코스인데 장소 수가 너무 부족하면 카페 1곳까지만 보완 허용
   if(longCourse && selected.length < minTarget) {
     const cafeFallback = pool.find(p => p.cat==='cafe' && !selected.find(s=>s.id===p.id));
     if(cafeFallback) pushCoursePlace(cafeFallback);
   }
 
-  // 짧은 코스는 카페 1곳 보장
   if(!longCourse && !selected.some(p=>p.cat==='cafe')) {
     const cafePool = PLACES.filter(p => {
       if(!p.active || p.cat!=='cafe') return false;
@@ -927,7 +887,6 @@ function recommend() {
     if(cafePool[0]) pushCoursePlace(cafePool[0]);
   }
 
-  // 긴 코스 카페 후보 — 메인 타임라인 대신 선택형으로 제안
   const selectedAreas = [...new Set(selected.map(p=>p.area))];
   const cafeChoices = PLACES.filter(p => {
     if(!p.active || p.cat!=='cafe') return false;
@@ -943,7 +902,6 @@ function recommend() {
     return bMatch - aMatch;
   }).filter((p, idx, arr) => arr.findIndex(x => x.id === p.id) === idx).slice(0,3);
 
-  // 대체 코스 — 선택 동네 내에서
   const usedIds = new Set(selected.map(p=>p.id));
   const alt1 = pool.filter(p=>!usedIds.has(p.id)).slice(0,3);
   const alt2 = PLACES.filter(p => {
@@ -963,19 +921,14 @@ function recommend() {
 }
 
 const WALK_MAP = {
-  // 홍대·상수 내
   'p1-p2':5,'p2-p3':7,'p1-p3':10,'p1-p4':8,'p3-p5':5,
   'p4-p8':6,'p7-p8':8,'p5-p6':20,'p8-p7':5,'p1-p8':8,
   'p1-p7':8,'p1-p25':10,'p25-p8':6,'p25-p4':10,'p5-p26':8,
   'p1-p26':8,'p2-p26':5,'p3-p26':6,
-  // 홍대 ↔ 연남동
   'p6-p9':8,'p9-p27':5,'p6-p27':10,
-  // 연희동 내
   'p28-p29':5,'p28-p30':6,'p29-p30':4,'p30-p31':8,
   'p28-p32':7,'p29-p32':6,'p31-p32':10,'p6-p28':15,
-  // 성수 내
   'p10-p11':5,'p11-p12':3,'p10-p12':5,'p10-p33':8,'p11-p33':5,'p33-p34':10,
-  // 을지로 내
   'p13-p14':8,'p14-p15':10,'p13-p15':12,'p13-p35':5,'p14-p35':8,
   'p13-p91':10,'p14-p91':12,'p15-p91':2,'p91-p92':3,'p15-p92':4,'p13-p92':12,'p14-p92':13,
   'p13-p93':5,'p14-p93':6,'p35-p93':4,'p93-p94':6,'p13-p94':8,'p14-p94':7,
@@ -983,46 +936,26 @@ const WALK_MAP = {
   'p93-p96':9,'p94-p96':10,'p95-p96':11,'p13-p96':12,'p15-p96':14,
   'p96-p98':4,'p96-p99':5,'p98-p99':6,'p94-p98':12,'p94-p99':11,'p93-p98':13,'p93-p99':12,
   'p15-p98':12,'p15-p99':11,'p91-p99':10,'p91-p95':8,'p92-p95':8,'p91-p97':7,'p92-p97':8,
-  // 서촌 내
   'p16-p17':8,'p17-p36':5,'p16-p36':8,'p17-p37':5,'p16-p37':5,
-  // 북촌·삼청 내
   'p18-p19':5,'p18-p38':12,'p19-p38':15,
-  // 서촌 ↔ 북촌
   'p16-p18':12,'p17-p19':18,'p36-p18':15,
-  // 인사동 ↔ 북촌
   'p38-p39':15,'p38-p18':12,
-  // 문래동 내
   'p21-p22':5,'p21-p24':8,'p22-p24':6,'p22-p41':5,'p21-p41':6,
-  // 삼각지 내
   'p42-p43':5,'p42-p44':8,'p43-p44':5,
-  // 해방촌 내
   'p45-p46':5,
-  // 창신동 내
   'p23-p51':10,'p23-p52':12,'p51-p52':8,'p52-p53':15,'p23-p53':18,
-  // 망원동 내
   'p54-p55':5,'p55-p56':5,'p54-p56':8,'p56-p57':8,'p54-p58':3,'p55-p58':3,'p56-p58':4,
   'p20-p54':8,'p20-p55':8,'p20-p56':10,'p40-p54':10,
-  // 동대문 내
   'p59-p60':12,'p59-p61':3,'p59-p62':8,'p60-p62':10,'p61-p62':8,'p60-p61':12,
   'p59-p49':10,
-  // 남대문·회현 내
   'p63-p64':10,'p63-p65':5,'p63-p66':5,'p65-p66':3,'p66-p67':8,'p63-p67':15,'p64-p67':12,
-  // 익선동·서순라길 내
   'p69-p70':5,'p69-p71':8,'p70-p71':5,'p71-p72':10,'p69-p72':8,'p70-p72':5,
-  // 익선동 ↔ 인사동
   'p69-p38':10,'p71-p38':12,
-  // 송리단길 내
   'p73-p74':5,'p73-p75':8,'p74-p75':8,
-
-  // 성수 추가
   'p10-p79':5,'p11-p79':5,'p12-p79':3,'p33-p79':5,'p34-p79':10,'p79-p80':15,
-  // 한남·이태원 추가
   'p47-p81':8,'p78-p81':8,'p81-p82':10,'p78-p82':10,'p47-p82':12,'p48-p81':12,
-  // 서촌 추가
   'p16-p83':10,'p17-p83':10,'p36-p83':10,'p83-p84':8,'p84-p85':10,'p85-p86':10,'p16-p85':8,'p16-p86':10,
-  // 북촌·삼청동 추가
   'p18-p87':8,'p19-p87':8,'p87-p88':1,'p18-p88':8,'p19-p88':8,'p38-p87':10,
-  // 익선동·서순라길 추가
   'p69-p89':5,'p70-p89':5,'p72-p89':8,'p89-p90':5,'p69-p90':8,'p89-p38':12,'p90-p38':12,
 };
 function getWalk(a,b){return WALK_MAP[`${a}-${b}`]||WALK_MAP[`${b}-${a}`]||12;}
@@ -1066,26 +999,23 @@ function renderResult(data) {
     document.getElementById('resultInner').innerHTML = `
       <div class="empty-state" style="min-height:60vh;display:flex;flex-direction:column;align-items:center;justify-content:center">
         <div class="empty-state-icon">😅</div>
-        <div class="empty-state-text">${areaName ? `<strong>${areaName}</strong>에 등록된 장소가 아직 없어요.<br>` : ''}장소 관리에서 이 동네 장소를 추가하거나<br>조건을 바꿔보세요.</div>
-        <button class="restart-btn" style="margin-top:24px" onclick="showPage('admin')">장소 추가하기</button>
+        <div class="empty-state-text">${areaName ? `<strong>${areaName}</strong>에 등록된 장소가 아직 없어요.<br>` : ''}조건을 바꿔보세요.</div>
         <button class="restart-btn" style="margin-top:12px;border-color:var(--muted);color:var(--muted)" onclick="startWizard()">조건 다시 선택</button>
       </div>`;
     return;
   }
 
-  // 선택한 동네와 결과 동네 다를 때 경고
   const resultAreas = [...new Set(data.main.map(p=>p.area))];
   const areaWarning = S.areas.length > 0 && !S.areas.some(a => resultAreas.includes(a))
     ? `<div style="background:#FFF3EE;border:1px solid var(--terra-l);border-radius:4px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:var(--terra)">
-        ⚠️ <strong>${S.areas.join(', ')}</strong>에 장소가 부족해서 인근 동네로 대신 추천드렸어요. 장소 관리에서 이 동네 장소를 추가해보세요!
+        ⚠️ <strong>${S.areas.join(', ')}</strong>에 장소가 부족해서 인근 동네로 대신 추천드렸어요.
        </div>` : '';
 
-  // 선택 동네 장소 수 경고
   const areaPlaceCount = S.areas.length > 0
     ? PLACES.filter(p => p.active && S.areas.includes(p.area)).length : 0;
   const fewPlacesWarning = S.areas.length > 0 && areaPlaceCount < 3
     ? `<div style="background:#F0EBE0;border:1px solid var(--border);border-radius:4px;padding:10px 16px;margin-bottom:16px;font-size:13px;color:var(--muted)">
-        💡 <strong>${S.areas.join(', ')}</strong>에 등록된 장소가 ${areaPlaceCount}개예요. 장소 관리에서 더 추가하면 코스가 풍성해져요.
+        💡 <strong>${S.areas.join(', ')}</strong>에 등록된 장소가 ${areaPlaceCount}개예요.
        </div>` : '';
 
   const {main, alt1, alt2, totalMin, cafeChoices = []} = data;
@@ -1195,7 +1125,6 @@ function restart(){
 
 // ── ADMIN ────────────────────────────────────────────────
 function renderAdmin() {
-  // stats
   const cats = {};
   PLACES.forEach(p=>{cats[p.cat]=(cats[p.cat]||0)+1;});
   document.getElementById('adminStats').innerHTML = `
@@ -1204,7 +1133,6 @@ function renderAdmin() {
     <div class="stat-card"><div class="stat-num">${[...new Set(PLACES.map(p=>p.area))].length}</div><div class="stat-label">동네 수</div></div>
     <div class="stat-card"><div class="stat-num">${Object.keys(cats).length}</div><div class="stat-label">카테고리 수</div></div>
   `;
-  // area filter
   const sel=document.getElementById('filterArea');
   const cur=sel.value;
   sel.innerHTML='<option value="">전체 동네</option>';
@@ -1251,7 +1179,6 @@ function verStatus(v) {
   return {cls:'old',label:'오래된 정보'};
 }
 
-// Modal
 function openModal(id) {
   editId = id || null;
   document.getElementById('modalTitle').textContent = id ? '장소 수정' : '장소 추가';
@@ -1311,9 +1238,8 @@ async function savePlace() {
   };
   closeModal();
   if(window._fbSave) {
-    await window._fbSave(p); // Firebase 저장 (onSnapshot이 자동으로 renderAdmin 호출)
+    await window._fbSave(p);
   } else {
-    // Firebase 미연결 시 로컬 폴백
     if(editId) { const idx=PLACES.findIndex(x=>x.id===editId); if(idx>=0) PLACES[idx]=p; }
     else PLACES.push(p);
     renderAdmin();
@@ -1323,32 +1249,14 @@ async function savePlace() {
 async function deletePlace(id) {
   if(!confirm('이 장소를 삭제할까요?')) return;
   if(window._fbDelete) {
-    await window._fbDelete(id); // Firebase 삭제
+    await window._fbDelete(id);
   } else {
     PLACES=PLACES.filter(p=>p.id!==id);
     renderAdmin();
   }
 }
 
-// close modal on bg click
 document.getElementById('modalBg').addEventListener('click', e=>{if(e.target===e.currentTarget)closeModal();});
-
-
-// ── URL 파서 제거됨 ──────────────────────────────────────
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 </script>
 </body>
 </html>
