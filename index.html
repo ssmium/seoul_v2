@@ -97,6 +97,7 @@
       <button class="btn-add" onclick="openModal()">+ 장소 추가</button>
       <button class="btn-add btn-blue" onclick="migrateOldPlaces()">기존 DB 전체 복사</button>
       <button class="btn-add btn-gray" onclick="syncAdminToPublic()">관리자 DB → 공개 DB 반영</button>
+      <button class="btn-add" style="background:var(--sage)" onclick="bulkGeocode()">📍 좌표 없는 장소 일괄 변환</button>
     </div>
     <div class="place-table-wrap"><table class="place-table"><thead><tr><th>장소명</th><th>카테고리</th><th>동네</th><th>좌표</th><th>체류</th><th>확인일</th><th>운영</th><th></th></tr></thead><tbody id="placeTableBody"></tbody></table></div>
     <div id="emptyState" style="display:none" class="empty-state"><div class="empty-state-icon">🗺️</div><div class="empty-state-text">조건에 맞는 장소가 없어요.</div></div>
@@ -228,6 +229,13 @@ function pickArea(el){if(el.dataset.v==='any'){document.querySelectorAll('[data-
 // ─────────────────────────────────────────────
 // 추천 알고리즘 (지리적 근접도 반영)
 // ─────────────────────────────────────────────
+// 주소/area에서 구(區) 추출
+function extractGu(p){
+  const text=[p.address,p.area,''].filter(Boolean).join(' ');
+  const m=String(text).match(/[가-힣]+구/);
+  return m?m[0]:'';
+}
+
 function recommend(){
   let base=(window.PLACES||[]).filter(p=>p.active!==false);
   if(!base.length)return null;
@@ -252,13 +260,13 @@ function recommend(){
     score+=S.env.filter(e=>env.includes(e)).length*8;
     if(S.areas.includes(p.area))score+=15;
     score+=Math.random()*10;
-    return{...p,score};
+    return{...p,score,_gu:extractGu(p)};
   }).sort((a,b)=>b.score-a.score);
 
   const max=S.time||180;
   const target=max<=60?2:max<=120?3:max<=180?4:max<=240?5:6;
 
-  // 3단계: 앵커(가장 높은 점수) 선택 후 nearest-neighbor 확장
+  // 3단계: 앵커 선택 후 근접도 기반 nearest-neighbor
   const anchor={...pool[0],_distFromPrev:null,_moveFromPrev:0,_distM:null};
   const selected=[anchor];
   let usedTime=Number(anchor.time||30);
@@ -266,16 +274,31 @@ function recommend(){
 
   while(selected.length<target&&remaining.length>0){
     const last=selected[selected.length-1];
+    const visitedGus=new Set(selected.map(p=>p._gu).filter(Boolean));
+    const visitedAreas=new Set(selected.map(p=>p.area).filter(Boolean));
 
-    // 남은 장소들에 거리 점수 계산
     const scored=remaining.map(p=>{
       let distM=null,moveMins=10,proxScore=0;
+
       if(last.lat&&last.lng&&p.lat&&p.lng){
+        // 좌표 있으면 실제 거리 계산
         distM=haversine(last.lat,last.lng,p.lat,p.lng);
         moveMins=estimateTravel(distM).mins;
-        // 가까울수록 높은 점수 (최대 +40점, 5km 이상이면 0점)
-        proxScore=Math.max(0,40-distM/125);
+        proxScore=Math.max(0,50-distM/100); // 최대 +50, 5km=0
+      }else{
+        // 좌표 없으면 구/area 매칭으로 근접도 추정
+        const pGu=p._gu;
+        const lastGu=last._gu;
+        if(p.area&&p.area===last.area)       proxScore=50;  // 같은 area
+        else if(pGu&&pGu===lastGu)           proxScore=35;  // 같은 구
+        else if(visitedGus.has(pGu)&&pGu)    proxScore=-60; // 이미 간 구 재방문 패널티
+        else                                  proxScore=0;
+        moveMins=p.area===last.area?10:p._gu===last._gu?15:25;
       }
+
+      // 이미 간 area 재방문 강한 패널티
+      if(visitedAreas.has(p.area)&&selected.length>1) proxScore-=80;
+
       return{...p,_distFromPrev:distM,_moveFromPrev:moveMins,_distM:distM,
              _totalScore:p.score+proxScore};
     }).sort((a,b)=>b._totalScore-a._totalScore);
@@ -284,7 +307,6 @@ function recommend(){
     const moveMins=next._moveFromPrev||10;
     const nextTime=Number(next.time||30);
 
-    // 시간 여유가 있거나 아직 최소 2곳도 안 모였으면 추가
     if(selected.length<2||usedTime+moveMins+nextTime<=max){
       selected.push(next);
       usedTime+=moveMins+nextTime;
@@ -294,29 +316,31 @@ function recommend(){
     }
   }
 
-  // 4단계: 장소가 부족하면 전체 DB에서 보충 (거리 고려)
+  // 4단계: 장소 부족 시 전체 DB 보충 (구 패널티 유지)
   if(selected.length<Math.min(target,2)){
     const usedIds=new Set(selected.map(p=>p.id));
     const last=selected[selected.length-1]||anchor;
-    const fillPool=base.filter(p=>p.active!==false&&!usedIds.has(p.id)).map(p=>{
-      let distM=null,moveMins=10,proxScore=0;
+    const visitedGus=new Set(selected.map(p=>p._gu).filter(Boolean));
+    const fillPool=base.filter(p=>!usedIds.has(p.id)).map(p=>{
+      const pGu=extractGu(p);
+      let proxScore=0,distM=null,moveMins=20;
       if(last.lat&&last.lng&&p.lat&&p.lng){
         distM=haversine(last.lat,last.lng,p.lat,p.lng);
         moveMins=estimateTravel(distM).mins;
-        proxScore=Math.max(0,30-distM/150);
+        proxScore=Math.max(0,40-distM/125);
+      }else{
+        if(pGu&&pGu===last._gu) proxScore=30;
+        else if(visitedGus.has(pGu)&&pGu) proxScore=-40;
       }
-      let score=0;
-      if(S.cats.includes(p.cat))score+=40;
-      return{...p,_distFromPrev:distM,_moveFromPrev:moveMins,_distM:distM,
+      let score=0;if(S.cats.includes(p.cat))score+=40;
+      return{...p,_gu:pGu,_distFromPrev:distM,_moveFromPrev:moveMins,_distM:distM,
              _totalScore:score+proxScore+Math.random()*5};
     }).sort((a,b)=>b._totalScore-a._totalScore);
 
     for(const p of fillPool){
-      const moveMins=p._moveFromPrev||10;
-      const nextTime=Number(p.time||30);
-      if(selected.length<2||usedTime+moveMins+nextTime<=max){
-        selected.push(p);
-        usedTime+=moveMins+nextTime;
+      const moveMins=p._moveFromPrev||20;
+      if(selected.length<2||usedTime+moveMins+Number(p.time||30)<=max){
+        selected.push(p);usedTime+=moveMins+Number(p.time||30);
       }
       if(selected.length>=target)break;
     }
@@ -514,21 +538,51 @@ function openEdit(id){openModal(id)}
 function closeModal(){document.getElementById('modalBg').classList.remove('active');editId=null}
 function togglePick(el){el.classList.toggle('sel')}
 
+async function kakaoGeocode(query){
+  const KAKAO_KEY='8d6f2801e6556a4c09bf232b85593ad3';
+  // 1차: 주소 검색
+  try{
+    const r=await fetch(`https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(query)}`,{headers:{'Authorization':'KakaoAK '+KAKAO_KEY}});
+    const d=await r.json();
+    if(d.documents&&d.documents.length>0)return{lat:parseFloat(d.documents[0].y),lng:parseFloat(d.documents[0].x)};
+  }catch(e){}
+  // 2차: 키워드 검색
+  try{
+    const r=await fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(query)}&size=1`,{headers:{'Authorization':'KakaoAK '+KAKAO_KEY}});
+    const d=await r.json();
+    if(d.documents&&d.documents.length>0)return{lat:parseFloat(d.documents[0].y),lng:parseFloat(d.documents[0].x)};
+  }catch(e){}
+  return null;
+}
+
 async function savePlace(){
   if(!window._isAdmin){alert('관리자만 저장할 수 있어요');return}
   const originalEditId=editId;
   const name=document.getElementById('f_name').value.trim();
   const cat=document.getElementById('f_cat').value;
   const area=document.getElementById('f_area').value.trim();
+  const address=document.getElementById('f_address').value.trim();
   const time=parseInt(document.getElementById('f_time').value)||30;
   if(!name||!cat||!area){alert('장소명, 카테고리, 동네는 필수예요!');return}
-  const latVal=parseFloat(document.getElementById('f_lat').value);
-  const lngVal=parseFloat(document.getElementById('f_lng').value);
+
+  let latVal=parseFloat(document.getElementById('f_lat').value);
+  let lngVal=parseFloat(document.getElementById('f_lng').value);
+
+  // 좌표 없으면 자동 변환
+  if(isNaN(latVal)||isNaN(lngVal)){
+    const saveBtn=document.querySelector('.btn-save');
+    if(saveBtn){saveBtn.textContent='📍 좌표 변환 중...';saveBtn.disabled=true;}
+    const query=address||name;
+    const coords=await kakaoGeocode(query);
+    if(coords){latVal=coords.lat;lngVal=coords.lng;}
+    if(saveBtn){saveBtn.textContent='저장';saveBtn.disabled=false;}
+  }
+
   const who=[...document.querySelectorAll('#whoPicker .sel')].map(e=>e.dataset.v);
   const env=[...document.querySelectorAll('#envPicker .sel')].map(e=>e.dataset.v);
   const p={
     id:originalEditId||'p'+Date.now(),name,cat,area,time,
-    address:document.getElementById('f_address').value.trim(),
+    address,
     station:document.getElementById('f_station').value.trim(),
     hours:document.getElementById('f_hours').value.trim(),
     tip:document.getElementById('f_tip').value.trim(),
@@ -544,6 +598,35 @@ async function savePlace(){
   const publish=document.getElementById('f_publish').value==='true';
   closeModal();
   await window._fbSave(p,publish);
+}
+
+async function bulkGeocode(){
+  if(!window._isAdmin){alert('관리자만 사용 가능해요');return}
+  const list=(window.PLACES_ADMIN||[]).filter(p=>!p.lat||!p.lng);
+  if(!list.length){alert('좌표가 없는 장소가 없어요 👍');return}
+  if(!confirm(`좌표 없는 장소 ${list.length}개를 자동 변환할까요?\n(주소 또는 장소명으로 카카오 API 검색)`))return;
+
+  let ok=0,fail=0;
+  for(let i=0;i<list.length;i++){
+    const p=list[i];
+    const query=p.address||p.name;
+    // 진행상황 알림 (5개마다)
+    if(i%5===0) document.getElementById('adminNotice').innerHTML=
+      `📍 좌표 변환 중... ${i}/${list.length} (성공 ${ok} / 실패 ${fail})`;
+    const coords=await kakaoGeocode(query);
+    if(coords){
+      const updated={...p,lat:coords.lat,lng:coords.lng};
+      await window._fbSave(updated, updated.active!==false);
+      ok++;
+    }else{
+      fail++;
+    }
+    // API 과호출 방지
+    await new Promise(r=>setTimeout(r,120));
+  }
+  document.getElementById('adminNotice').innerHTML=
+    `✅ 일괄 변환 완료! 성공 <b>${ok}개</b> / 실패 <b>${fail}개</b>${fail>0?' — 실패한 장소는 주소를 확인해주세요':''}`;
+  renderAdmin();
 }
 
 async function deletePlace(id){if(!confirm('관리자 DB와 공개 DB에서 모두 삭제할까요?'))return;await window._fbDelete(id)}
