@@ -538,20 +538,29 @@ function openEdit(id){openModal(id)}
 function closeModal(){document.getElementById('modalBg').classList.remove('active');editId=null}
 function togglePick(el){el.classList.toggle('sel')}
 
-async function kakaoGeocode(query){
+async function kakaoGeocode(query, placeName=''){
   const KAKAO_KEY='8d6f2801e6556a4c09bf232b85593ad3';
-  // 1차: 주소 검색
-  try{
-    const r=await fetch(`https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(query)}`,{headers:{'Authorization':'KakaoAK '+KAKAO_KEY}});
-    const d=await r.json();
-    if(d.documents&&d.documents.length>0)return{lat:parseFloat(d.documents[0].y),lng:parseFloat(d.documents[0].x)};
-  }catch(e){}
-  // 2차: 키워드 검색
-  try{
-    const r=await fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(query)}&size=1`,{headers:{'Authorization':'KakaoAK '+KAKAO_KEY}});
-    const d=await r.json();
-    if(d.documents&&d.documents.length>0)return{lat:parseFloat(d.documents[0].y),lng:parseFloat(d.documents[0].x)};
-  }catch(e){}
+  const seoul=q=>q.startsWith('서울')?q:'서울 '+q;
+
+  // 시도할 쿼리 목록 (순서대로)
+  const tries=[
+    {type:'address', q:seoul(query)},
+    {type:'address', q:query},
+    {type:'keyword', q:placeName||query},          // 장소명으로 키워드 검색
+    {type:'keyword', q:seoul(placeName||query)},
+  ].filter((v,i,a)=>v.q&&a.findIndex(x=>x.type===v.type&&x.q===v.q)===i); // 중복 제거
+
+  for(const t of tries){
+    try{
+      const url=t.type==='address'
+        ?`https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(t.q)}`
+        :`https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(t.q)}&size=1`;
+      const r=await fetch(url,{headers:{'Authorization':'KakaoAK '+KAKAO_KEY}});
+      const d=await r.json();
+      if(d.documents&&d.documents.length>0)
+        return{lat:parseFloat(d.documents[0].y),lng:parseFloat(d.documents[0].x)};
+    }catch(e){}
+  }
   return null;
 }
 
@@ -573,7 +582,7 @@ async function savePlace(){
     const saveBtn=document.querySelector('.btn-save');
     if(saveBtn){saveBtn.textContent='📍 좌표 변환 중...';saveBtn.disabled=true;}
     const query=address||name;
-    const coords=await kakaoGeocode(query);
+    const coords=await kakaoGeocode(query, name);
     if(coords){latVal=coords.lat;lngVal=coords.lng;}
     if(saveBtn){saveBtn.textContent='저장';saveBtn.disabled=false;}
   }
@@ -613,7 +622,7 @@ async function bulkGeocode(){
     // 진행상황 알림 (5개마다)
     if(i%5===0) document.getElementById('adminNotice').innerHTML=
       `📍 좌표 변환 중... ${i}/${list.length} (성공 ${ok} / 실패 ${fail})`;
-    const coords=await kakaoGeocode(query);
+    const coords=await kakaoGeocode(query, p.name);
     if(coords){
       const updated={...p,lat:coords.lat,lng:coords.lng};
       await window._fbSave(updated, updated.active!==false);
@@ -651,28 +660,14 @@ async function autoGeocode(){
   if(!query){alert('주소 또는 장소명을 먼저 입력해주세요.');return;}
   const msg=document.getElementById('geocodeMsg');
   msg.style.color='var(--muted)';msg.textContent='🔍 좌표 검색 중...';
-  try{
-    const KAKAO_KEY='8d6f2801e6556a4c09bf232b85593ad3';
-    const res=await fetch(`https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(query)}`,{headers:{'Authorization':'KakaoAK '+KAKAO_KEY}});
-    const data=await res.json();
-    if(data.documents&&data.documents.length>0){
-      const d=data.documents[0];
-      document.getElementById('f_lat').value=parseFloat(d.y).toFixed(6);
-      document.getElementById('f_lng').value=parseFloat(d.x).toFixed(6);
-      msg.style.color='var(--sage)';msg.textContent='✅ 변환 완료: '+escapeHtml(d.address_name||query);
-    }else{
-      const res2=await fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(query)}&size=1`,{headers:{'Authorization':'KakaoAK '+KAKAO_KEY}});
-      const data2=await res2.json();
-      if(data2.documents&&data2.documents.length>0){
-        const d=data2.documents[0];
-        document.getElementById('f_lat').value=parseFloat(d.y).toFixed(6);
-        document.getElementById('f_lng').value=parseFloat(d.x).toFixed(6);
-        msg.style.color='var(--sage)';msg.textContent='✅ 변환 완료: '+escapeHtml(d.place_name);
-      }else{
-        msg.style.color='var(--terra)';msg.textContent='❌ 좌표를 찾지 못했어요. 주소를 더 구체적으로 입력해보세요.';
-      }
-    }
-  }catch(e){msg.style.color='var(--terra)';msg.textContent='❌ 오류: '+e.message;}
+  const coords=await kakaoGeocode(query, name);
+  if(coords){
+    document.getElementById('f_lat').value=coords.lat.toFixed(6);
+    document.getElementById('f_lng').value=coords.lng.toFixed(6);
+    msg.style.color='var(--sage)';msg.textContent='✅ 변환 완료!';
+  }else{
+    msg.style.color='var(--terra)';msg.textContent='❌ 좌표를 찾지 못했어요. 주소를 더 구체적으로 입력해보세요.';
+  }
 }
 function escapeHtml(str){return String(str??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;')}
 function escapeAttr(str){return escapeHtml(str).replaceAll('`','&#096;')}
