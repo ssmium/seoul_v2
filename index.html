@@ -253,16 +253,12 @@ function recommend(){
   if(filtered.length)pool=filtered;
   if(!pool.length)pool=base;
 
-  // 2단계: 취향 점수 부여
-  pool=pool.map(p=>{
-    let score=0;
-    if(S.cats.includes(p.cat))score+=40;
-    const env=Array.isArray(p.env)?p.env:[];
-    score+=S.env.filter(e=>env.includes(e)).length*8;
-    if(S.areas.includes(p.area))score+=15;
-    score+=Math.random()*10;
-    return{...p,score,_gu:extractGu(p)};
-  }).sort((a,b)=>b.score-a.score);
+  // 2단계: 랜덤 셔플 (매번 다른 코스)
+  for(let i=pool.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [pool[i],pool[j]]=[pool[j],pool[i]];
+  }
+  pool=pool.map(p=>({...p,_gu:extractGu(p)}));
 
   const max=S.time||180;
   const target=max<=60?2:max<=120?3:max<=180?4:max<=240?5:6;
@@ -273,38 +269,56 @@ function recommend(){
   const anchor={...anchorBase,_distFromPrev:null,_moveFromPrev:0,_distM:null};
   const selected=[anchor];
   let usedTime=Number(anchor.time||30);
-  let remaining=[...pool.slice(1)];
+
+  // 앵커 기준 구/area 확정
+  const anchorGu=anchor._gu;
+  const anchorArea=anchor.area;
+
+  // 후보풀: 좌표 기반(3km 이내) → 같은 구 → 같은 area 순으로 범위 확장
+  function buildCandidates(remaining, last){
+    const lastGu=last._gu;
+    const lastArea=last.area;
+
+    // 1순위: 좌표 있으면 3km 이내
+    if(last.lat&&last.lng){
+      const near=remaining.filter(p=>{
+        if(!p.lat||!p.lng)return false;
+        return haversine(last.lat,last.lng,p.lat,p.lng)<=3000;
+      });
+      if(near.length>0)return near;
+    }
+    // 2순위: 같은 area
+    const sameArea=remaining.filter(p=>p.area&&p.area===lastArea);
+    if(sameArea.length>0)return sameArea;
+    // 3순위: 같은 구
+    const sameGu=remaining.filter(p=>p._gu&&p._gu===lastGu);
+    if(sameGu.length>0)return sameGu;
+    // 4순위: 앵커 구
+    const anchorGuPool=remaining.filter(p=>p._gu&&p._gu===anchorGu);
+    if(anchorGuPool.length>0)return anchorGuPool;
+    // 최후: 전체 (어쩔 수 없는 경우)
+    return remaining;
+  }
+
+  let remaining=[...pool.filter(p=>p.id!==anchor.id)];
 
   while(selected.length<target&&remaining.length>0){
     const last=selected[selected.length-1];
-    const visitedGus=new Set(selected.map(p=>p._gu).filter(Boolean));
-    const visitedAreas=new Set(selected.map(p=>p.area).filter(Boolean));
+    const candidates=buildCandidates(remaining,last);
 
-    const scored=remaining.map(p=>{
+    const scored=candidates.map(p=>{
       let distM=null,moveMins=10,proxScore=0;
-
       if(last.lat&&last.lng&&p.lat&&p.lng){
-        // 좌표 있으면 실제 거리 계산
         distM=haversine(last.lat,last.lng,p.lat,p.lng);
         moveMins=estimateTravel(distM).mins;
-        proxScore=Math.max(0,50-distM/100); // 최대 +50, 5km=0
+        proxScore=-distM; // 가까울수록 높은 순위
       }else{
-        // 좌표 없으면 구/area 매칭으로 근접도 추정
-        const pGu=p._gu;
-        const lastGu=last._gu;
-        if(p.area&&p.area===last.area)       proxScore=50;  // 같은 area
-        else if(pGu&&pGu===lastGu)           proxScore=35;  // 같은 구
-        else if(visitedGus.has(pGu)&&pGu)    proxScore=-60; // 이미 간 구 재방문 패널티
-        else                                  proxScore=0;
-        moveMins=p.area===last.area?10:p._gu===last._gu?15:25;
+        if(p.area===last.area)    {proxScore=2;moveMins=10;}
+        else if(p._gu===last._gu) {proxScore=1;moveMins=15;}
+        else                      {proxScore=0;moveMins=25;}
       }
-
-      // 이미 간 area 재방문 강한 패널티
-      if(visitedAreas.has(p.area)&&selected.length>1) proxScore-=80;
-
-      return{...p,_distFromPrev:distM,_moveFromPrev:moveMins,_distM:distM,
-             _totalScore:p.score+proxScore};
-    }).sort((a,b)=>b._totalScore-a._totalScore);
+      return{...p,_distFromPrev:distM,_moveFromPrev:moveMins,_distM:distM,_proxScore:proxScore};
+    }).sort((a,b)=>b._proxScore-a._proxScore);
 
     const next=scored[0];
     const moveMins=next._moveFromPrev||10;
@@ -313,10 +327,8 @@ function recommend(){
     if(selected.length<2||usedTime+moveMins+nextTime<=max){
       selected.push(next);
       usedTime+=moveMins+nextTime;
-      remaining=remaining.filter(p=>p.id!==next.id);
-    }else{
-      break;
     }
+    remaining=remaining.filter(p=>p.id!==next.id);
   }
 
   // 4단계: 장소 부족 시 전체 DB 보충 (구 패널티 유지)
@@ -326,19 +338,16 @@ function recommend(){
     const visitedGus=new Set(selected.map(p=>p._gu).filter(Boolean));
     const fillPool=base.filter(p=>!usedIds.has(p.id)).map(p=>{
       const pGu=extractGu(p);
-      let proxScore=0,distM=null,moveMins=20;
+      let distM=null,moveMins=20,proxScore=0;
       if(last.lat&&last.lng&&p.lat&&p.lng){
         distM=haversine(last.lat,last.lng,p.lat,p.lng);
         moveMins=estimateTravel(distM).mins;
-        proxScore=Math.max(0,40-distM/125);
+        proxScore=-distM;
       }else{
-        if(pGu&&pGu===last._gu) proxScore=30;
-        else if(visitedGus.has(pGu)&&pGu) proxScore=-40;
+        if(pGu&&pGu===last._gu){proxScore=1;moveMins=15;}
       }
-      let score=0;if(S.cats.includes(p.cat))score+=40;
-      return{...p,_gu:pGu,_distFromPrev:distM,_moveFromPrev:moveMins,_distM:distM,
-             _totalScore:score+proxScore+Math.random()*5};
-    }).sort((a,b)=>b._totalScore-a._totalScore);
+      return{...p,_gu:pGu,_distFromPrev:distM,_moveFromPrev:moveMins,_distM:distM,_proxScore:proxScore};
+    }).sort((a,b)=>b._proxScore-a._proxScore);
 
     for(const p of fillPool){
       const moveMins=p._moveFromPrev||20;
