@@ -304,9 +304,16 @@ function recommend(){
 
   while(selected.length<target&&remaining.length>0){
     const last=selected[selected.length-1];
+    const usedCats=new Set(selected.map(p=>p.cat));
     const candidates=buildCandidates(remaining,last);
 
-    const scored=candidates.map(p=>{
+    // 이미 선택된 카테고리 제외 (하루종일이면 2개까지 허용)
+    const maxPerCat=S.time>=360?2:1;
+    const catCount={};selected.forEach(p=>{catCount[p.cat]=(catCount[p.cat]||0)+1});
+    const noDupCandidates=candidates.filter(p=>(catCount[p.cat]||0)<maxPerCat);
+    const finalCandidates=noDupCandidates.length>0?noDupCandidates:candidates;
+
+    const scored=finalCandidates.map(p=>{
       let distM=null,moveMins=10,proxScore=0;
       if(last.lat&&last.lng&&p.lat&&p.lng){
         distM=haversine(last.lat,last.lng,p.lat,p.lng);
