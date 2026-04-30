@@ -164,7 +164,95 @@ function ws(n){document.querySelectorAll('.wizard-step').forEach(s=>s.classList.
 function pick1(el){const s=el.dataset.s;document.querySelectorAll(`[data-s="${s}"].chip:not(.multi)`).forEach(c=>c.classList.remove('sel'));el.classList.add('sel');if(s==='1')S.time=parseInt(el.dataset.v);if(s==='2')S.who=el.dataset.v;if(s==='6')S.budget=el.dataset.v;const btn=document.getElementById('n'+s);if(btn)btn.removeAttribute('disabled')}
 function pickM(el){el.classList.toggle('sel');const s=el.dataset.s;if(s==='4')S.cats=[...document.querySelectorAll('[data-s="4"].sel')].map(e=>e.dataset.v);if(s==='5')S.env=[...document.querySelectorAll('[data-s="5"].sel')].map(e=>e.dataset.v);const btn=document.getElementById('n'+s);if(btn&&s==='4'){S.cats.length>0?btn.removeAttribute('disabled'):btn.setAttribute('disabled',true)}}
 function pickArea(el){if(el.dataset.v==='any'){document.querySelectorAll('[data-s="3"]').forEach(c=>c.classList.remove('sel'));el.classList.add('sel');S.areas=[]}else{document.querySelector('[data-s="3"][data-v="any"]')?.classList.remove('sel');el.classList.toggle('sel');S.areas=[...document.querySelectorAll('[data-s="3"].sel:not([data-v="any"])')].map(e=>e.dataset.v)}const has=el.dataset.v==='any'||S.areas.length>0;const btn=document.getElementById('n3');has?btn.removeAttribute('disabled'):btn.setAttribute('disabled',true)}
-function recommend(){let pool=(window.PLACES||[]).filter(p=>p.active!==false);if(!pool.length)return null;if(S.areas.length>0)pool=pool.filter(p=>S.areas.includes(p.area));if(S.who)pool=pool.filter(p=>Array.isArray(p.who)?p.who.includes(S.who):true);pool=pool.filter(p=>{if(S.budget==='free'&&p.price!=='free')return false;if(S.budget==='low'&&PRICE_ORDER[p.price||'low']>1)return false;return true});if(!pool.length)pool=(window.PLACES||[]).filter(p=>p.active!==false);pool=pool.map(p=>{let score=0;if(S.cats.includes(p.cat))score+=40;const env=Array.isArray(p.env)?p.env:[];score+=S.env.filter(e=>env.includes(e)).length*8;if(S.areas.includes(p.area))score+=15;score+=Math.random()*10;return{...p,score}}).sort((a,b)=>b.score-a.score);const max=S.time||180;const target=max<=60?2:max<=120?3:max<=180?4:max<=240?5:6;const selected=[];let used=0;for(const p of pool){const move=selected.length?10:0;const time=Number(p.time||30);if(selected.length<target||used+move+time<=max){selected.push(p);used+=move+time}if(selected.length>=target)break}return{main:selected,totalMin:used,alt1:pool.filter(p=>!selected.find(s=>s.id===p.id)).slice(0,3),alt2:pool.slice().sort(()=>Math.random()-.5).filter(p=>!selected.find(s=>s.id===p.id)).slice(0,3)}}
+function getDistrictText(place){
+  const text=[place.district,place.gu,place.address,place.area].filter(Boolean).join(' ');
+  const m=String(text).match(/[가-힣]+구/);
+  return m ? m[0] : '';
+}
+function getAreaGroupText(place){
+  return getDistrictText(place) || place.area || '';
+}
+function pickAnchorPlace(pool){
+  if(!pool.length)return null;
+  const byCat=pool.find(p=>S.cats.includes(p.cat));
+  if(byCat)return byCat;
+  return pool[0];
+}
+function applySameDistrictOrArea(pool, anchor){
+  if(!anchor || pool.length<2)return pool;
+  const anchorDistrict=getDistrictText(anchor);
+  const anchorArea=anchor.area || '';
+  if(anchorDistrict){
+    const sameDistrict=pool.filter(p=>getDistrictText(p)===anchorDistrict);
+    if(sameDistrict.length>=2)return sameDistrict;
+  }
+  if(anchorArea){
+    const sameArea=pool.filter(p=>p.area===anchorArea);
+    if(sameArea.length>=2)return sameArea;
+  }
+  return pool;
+}
+function recommend(){
+  let base=(window.PLACES||[]).filter(p=>p.active!==false);
+  if(!base.length)return null;
+  let pool=base;
+  if(S.areas.length>0)pool=pool.filter(p=>S.areas.includes(p.area));
+  if(S.who)pool=pool.filter(p=>Array.isArray(p.who)?p.who.includes(S.who):true);
+  let filtered=pool.filter(p=>{
+    if(S.budget==='free'&&p.price!=='free')return false;
+    if(S.budget==='low'&&PRICE_ORDER[p.price||'low']>1)return false;
+    return true;
+  });
+  if(filtered.length)pool=filtered;
+  if(!pool.length)pool=base;
+  pool=pool.map(p=>{
+    let score=0;
+    if(S.cats.includes(p.cat))score+=40;
+    const env=Array.isArray(p.env)?p.env:[];
+    score+=S.env.filter(e=>env.includes(e)).length*8;
+    if(S.areas.includes(p.area))score+=15;
+    score+=Math.random()*10;
+    return{...p,score};
+  }).sort((a,b)=>b.score-a.score);
+  const anchor=pickAnchorPlace(pool);
+  pool=applySameDistrictOrArea(pool,anchor).sort((a,b)=>b.score-a.score);
+  const max=S.time||180;
+  const target=max<=60?2:max<=120?3:max<=180?4:max<=240?5:6;
+  const selected=[];
+  let used=0;
+  for(const p of pool){
+    const move=selected.length?10:0;
+    const time=Number(p.time||30);
+    if(selected.length<target||used+move+time<=max){
+      selected.push(p);
+      used+=move+time;
+    }
+    if(selected.length>=target)break;
+  }
+  if(selected.length<Math.min(target,3)){
+    const usedIds=new Set(selected.map(p=>p.id));
+    const fillPool=base.filter(p=>p.active!==false&&!usedIds.has(p.id)).map(p=>{
+      let score=0;
+      if(S.cats.includes(p.cat))score+=40;
+      if(anchor&&getDistrictText(anchor)&&getDistrictText(p)===getDistrictText(anchor))score+=30;
+      if(anchor&&anchor.area&&p.area===anchor.area)score+=20;
+      return{...p,score:score+Math.random()*5};
+    }).sort((a,b)=>b.score-a.score);
+    for(const p of fillPool){
+      const move=selected.length?10:0;
+      const time=Number(p.time||30);
+      if(selected.length<target||used+move+time<=max){
+        selected.push(p);
+        used+=move+time;
+      }
+      if(selected.length>=target)break;
+    }
+  }
+  const selectedIds=new Set(selected.map(p=>p.id));
+  const altBase=pool.filter(p=>!selectedIds.has(p.id));
+  const altFallback=base.filter(p=>!selectedIds.has(p.id)&&!altBase.find(a=>a.id===p.id));
+  return{main:selected,totalMin:used,alt1:altBase.slice(0,3),alt2:altFallback.slice(0,3)};
+}
 function renderResult(data){const box=document.getElementById('resultInner');if(!data||!data.main||!data.main.length){box.innerHTML=`<button class="result-back" onclick="showPage('wizard')">← 조건 다시 고르기</button><div class="result-tag">No Course</div><h2 class="result-title">아직 추천할 장소가 없어요</h2><p class="result-desc">관리자에서 기존 DB를 공개 DB로 복사하거나 장소를 추가해주세요.</p><button class="restart-btn" onclick="restart()">처음으로</button>`;return}const areaLabel=S.areas.length?S.areas.join(', '):'서울 어디든';const catsLabel=S.cats.map(c=>CAT_LABEL[c]||c).join(', ');let html=`<button class="result-back" onclick="showPage('wizard')">← 조건 다시 고르기</button><div class="result-tag">Recommended Course</div><h2 class="result-title">${escapeHtml(areaLabel)} 코스</h2><p class="result-desc">${WHO_LABEL[S.who]||'방문자'} 기준으로 ${escapeHtml(catsLabel||'선택 조건')} 중심의 코스를 구성했어요.</p><div class="result-meta"><div class="meta-pill">⏱️ 예상 ${data.totalMin||'-'}분</div><div class="meta-pill">📍 ${data.main.length}곳</div><div class="meta-pill">🚶 장소 간 이동 약 10분 기준</div></div><div class="timeline">`;data.main.forEach((p,i)=>{html+=`<div class="place-row"><div class="place-num ${i===0?'anchor':''}">${i+1}</div><div class="place-card"><div class="place-head"><div class="place-name">${escapeHtml(p.name||'')}</div><div class="badges"><span class="badge b-cat">${CAT_LABEL[p.cat]||p.cat||'-'}</span><span class="badge b-area">${escapeHtml(p.area||'-')}</span><span class="badge b-time">${p.time||30}분</span></div></div>${p.address?`<div class="place-addr">${escapeHtml(p.address)}</div>`:''}${p.station?`<div class="place-addr">🚇 ${escapeHtml(p.station)}</div>`:''}${p.hours?`<div class="place-addr">🕒 ${escapeHtml(p.hours)}</div>`:''}${p.tip?`<div class="place-tip">💡 ${escapeHtml(p.tip)}</div>`:''}</div></div>`;if(i<data.main.length-1)html+='<div class="connector"><span>도보/이동 약 10분</span><div class="conn-line"></div></div>'});html+='</div>';const alt=[...(data.alt1||[]),...(data.alt2||[])].slice(0,4);if(alt.length){html+='<div class="alt-section"><h3 class="alt-title">다른 후보 장소</h3><div class="alt-grid">';alt.forEach(p=>{html+=`<div class="alt-card"><div class="alt-card-title">${escapeHtml(p.name||'')}</div><div class="alt-card-sub">${escapeHtml(p.area||'')} · ${CAT_LABEL[p.cat]||p.cat||''}</div></div>`});html+='</div></div>'}html+='<button class="restart-btn" onclick="restart()">처음부터 다시</button>';box.innerHTML=html}
 const LMSGS=['취향에 맞는 장소 찾는 중...','동선 최적화 중...','공개 DB 장소만 고르는 중...','코스 완성 중...'];let li=0;function goResult(){document.getElementById('page-wizard').classList.remove('active');const ld=document.getElementById('loading');ld.classList.add('active');const iv=setInterval(()=>{li=(li+1)%LMSGS.length;document.getElementById('lmsg').textContent=LMSGS[li]},500);setTimeout(()=>{clearInterval(iv);ld.classList.remove('active');const d=recommend();showPage('result');renderResult(d);window.scrollTo(0,0)},1000)}
 function restart(){S.time=0;S.who='';S.areas=[];S.cats=[];S.env=[];S.budget='';document.querySelectorAll('.chip').forEach(c=>c.classList.remove('sel'));document.querySelectorAll('.btn-next').forEach(b=>b.setAttribute('disabled',true));document.getElementById('n5')?.removeAttribute('disabled');showPage('hero');window.scrollTo(0,0)}
