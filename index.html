@@ -539,43 +539,23 @@ function closeModal(){document.getElementById('modalBg').classList.remove('activ
 function togglePick(el){el.classList.toggle('sel')}
 
 async function kakaoGeocode(query, placeName=''){
-  const KAKAO_KEY='8d6f2801e6556a4c09bf232b85593ad3';
-
-  // 주소 정제: 건물명/층수/호수 등 제거하고 도로명+번지만 추출
-  function cleanAddr(addr){
-    return addr
-      .replace(/\s*\d+층.*$/,'')        // "1층" 이후 제거
-      .replace(/\s*[가-힣]+빌딩.*/,'')   // "○○빌딩" 이후 제거
-      .replace(/\s*[가-힣]+타워.*/,'')
-      .replace(/\s*[가-힣]+센터.*/,'')
-      .replace(/\s*[가-힣]+몰.*/,'')
-      .replace(/\s*\(.*\).*/,'')         // 괄호 이후 제거
-      .replace(/\s+/g,' ').trim();
-  }
-
-  const seoul=q=>(/^서울/.test(q)?q:'서울 '+q);
-  const cleaned=cleanAddr(query);
-
-  // 시도 순서: 정제주소→원본주소→장소명 키워드 (서울 붙이기 포함)
+  // Nominatim (OpenStreetMap) - 브라우저 직접 호출 가능, 무료
   const tries=[
-    {type:'address', q:seoul(cleaned)},
-    {type:'address', q:cleaned},
-    {type:'address', q:seoul(query)},
-    {type:'keyword', q:placeName},
-    {type:'keyword', q:'서울 '+placeName},
-  ].filter(v=>v.q&&v.q.trim().length>1)
-   .filter((v,i,a)=>a.findIndex(x=>x.type===v.type&&x.q===v.q)===i);
+    placeName ? `${placeName} ${query} 서울` : null,
+    placeName ? `${placeName} 서울` : null,
+    `${query} 서울`,
+    query,
+  ].filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i);
 
-  for(const t of tries){
+  for(const q of tries){
     try{
-      const url=t.type==='address'
-        ?`https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(t.q)}`
-        :`https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(t.q)}&size=1`;
-      const r=await fetch(url,{headers:{'Authorization':'KakaoAK '+KAKAO_KEY}});
+      const url=`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&countrycodes=kr&limit=1&format=json`;
+      const r=await fetch(url,{headers:{'Accept-Language':'ko','User-Agent':'SeoulCourseApp/1.0'}});
       const d=await r.json();
-      if(d.documents&&d.documents.length>0)
-        return{lat:parseFloat(d.documents[0].y),lng:parseFloat(d.documents[0].x),matched:t.q};
+      if(d&&d.length>0)
+        return{lat:parseFloat(d[0].lat),lng:parseFloat(d[0].lon),matched:q};
     }catch(e){}
+    await new Promise(r=>setTimeout(r,1100)); // Nominatim 사용정책: 1초에 1회
   }
   return null;
 }
@@ -645,7 +625,7 @@ async function bulkGeocode(){
     }else{
       failed.push(p.name);
     }
-    await new Promise(r=>setTimeout(r,150));
+    await new Promise(r=>setTimeout(r,200));
   }
   const failMsg=failed.length
     ?`<br>❌ 실패 ${failed.length}개: <span style="font-size:12px">${failed.map(n=>escapeHtml(n)).join(', ')}</span>`:'';
