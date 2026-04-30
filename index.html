@@ -540,15 +540,31 @@ function togglePick(el){el.classList.toggle('sel')}
 
 async function kakaoGeocode(query, placeName=''){
   const KAKAO_KEY='8d6f2801e6556a4c09bf232b85593ad3';
-  const seoul=q=>q.startsWith('서울')?q:'서울 '+q;
 
-  // 시도할 쿼리 목록 (순서대로)
+  // 주소 정제: 건물명/층수/호수 등 제거하고 도로명+번지만 추출
+  function cleanAddr(addr){
+    return addr
+      .replace(/\s*\d+층.*$/,'')        // "1층" 이후 제거
+      .replace(/\s*[가-힣]+빌딩.*/,'')   // "○○빌딩" 이후 제거
+      .replace(/\s*[가-힣]+타워.*/,'')
+      .replace(/\s*[가-힣]+센터.*/,'')
+      .replace(/\s*[가-힣]+몰.*/,'')
+      .replace(/\s*\(.*\).*/,'')         // 괄호 이후 제거
+      .replace(/\s+/g,' ').trim();
+  }
+
+  const seoul=q=>(/^서울/.test(q)?q:'서울 '+q);
+  const cleaned=cleanAddr(query);
+
+  // 시도 순서: 정제주소→원본주소→장소명 키워드 (서울 붙이기 포함)
   const tries=[
+    {type:'address', q:seoul(cleaned)},
+    {type:'address', q:cleaned},
     {type:'address', q:seoul(query)},
-    {type:'address', q:query},
-    {type:'keyword', q:placeName||query},          // 장소명으로 키워드 검색
-    {type:'keyword', q:seoul(placeName||query)},
-  ].filter((v,i,a)=>v.q&&a.findIndex(x=>x.type===v.type&&x.q===v.q)===i); // 중복 제거
+    {type:'keyword', q:placeName},
+    {type:'keyword', q:'서울 '+placeName},
+  ].filter(v=>v.q&&v.q.trim().length>1)
+   .filter((v,i,a)=>a.findIndex(x=>x.type===v.type&&x.q===v.q)===i);
 
   for(const t of tries){
     try{
@@ -558,7 +574,7 @@ async function kakaoGeocode(query, placeName=''){
       const r=await fetch(url,{headers:{'Authorization':'KakaoAK '+KAKAO_KEY}});
       const d=await r.json();
       if(d.documents&&d.documents.length>0)
-        return{lat:parseFloat(d.documents[0].y),lng:parseFloat(d.documents[0].x)};
+        return{lat:parseFloat(d.documents[0].y),lng:parseFloat(d.documents[0].x),matched:t.q};
     }catch(e){}
   }
   return null;
@@ -615,26 +631,26 @@ async function bulkGeocode(){
   if(!list.length){alert('좌표가 없는 장소가 없어요 👍');return}
   if(!confirm(`좌표 없는 장소 ${list.length}개를 자동 변환할까요?\n(주소 또는 장소명으로 카카오 API 검색)`))return;
 
-  let ok=0,fail=0;
+  let ok=0;const failed=[];
   for(let i=0;i<list.length;i++){
     const p=list[i];
     const query=p.address||p.name;
-    // 진행상황 알림 (5개마다)
     if(i%5===0) document.getElementById('adminNotice').innerHTML=
-      `📍 좌표 변환 중... ${i}/${list.length} (성공 ${ok} / 실패 ${fail})`;
+      `📍 좌표 변환 중... ${i+1}/${list.length} (성공 ${ok} / 실패 ${failed.length}) — ${escapeHtml(p.name)}`;
     const coords=await kakaoGeocode(query, p.name);
     if(coords){
       const updated={...p,lat:coords.lat,lng:coords.lng};
       await window._fbSave(updated, updated.active!==false);
       ok++;
     }else{
-      fail++;
+      failed.push(p.name);
     }
-    // API 과호출 방지
-    await new Promise(r=>setTimeout(r,120));
+    await new Promise(r=>setTimeout(r,150));
   }
+  const failMsg=failed.length
+    ?`<br>❌ 실패 ${failed.length}개: <span style="font-size:12px">${failed.map(n=>escapeHtml(n)).join(', ')}</span>`:'';
   document.getElementById('adminNotice').innerHTML=
-    `✅ 일괄 변환 완료! 성공 <b>${ok}개</b> / 실패 <b>${fail}개</b>${fail>0?' — 실패한 장소는 주소를 확인해주세요':''}`;
+    `✅ 완료! 성공 <b>${ok}개</b>${failMsg}`;
   renderAdmin();
 }
 
