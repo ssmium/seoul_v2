@@ -238,7 +238,7 @@ function extractGu(p){
 }
 
 function recommend(){
-  let base=(window.PLACES||[]).filter(p=>p.active!==false);
+  let base=((window.PLACES_PUBLIC&&window.PLACES_PUBLIC.length?window.PLACES_PUBLIC:window.PLACES)||[]).filter(p=>p.active!==false);
   if(!base.length)return null;
 
   // 1단계: 기본 필터
@@ -267,8 +267,10 @@ function recommend(){
   const max=S.time||180;
   const target=max<=60?2:max<=120?3:max<=180?4:max<=240?5:6;
 
-  // 3단계: 앵커 선택 후 근접도 기반 nearest-neighbor
-  const anchor={...pool[0],_distFromPrev:null,_moveFromPrev:0,_distM:null};
+  // 3단계: 앵커 선택 - 좌표 있는 장소 우선
+  const anchorCandidates=pool.slice(0,Math.min(5,pool.length));
+  const anchorBase=anchorCandidates.find(p=>p.lat&&p.lng)||anchorCandidates[0];
+  const anchor={...anchorBase,_distFromPrev:null,_moveFromPrev:0,_distM:null};
   const selected=[anchor];
   let usedTime=Number(anchor.time||30);
   let remaining=[...pool.slice(1)];
@@ -378,6 +380,7 @@ function renderResult(data){
     <div class="meta-pill">📍 ${data.main.length}곳</div>
     ${hasCoords&&totalDistM>0?`<div class="meta-pill">🗺️ 총 이동 ${distLabel(totalDistM)}</div>`:''}
   </div>
+  ${hasCoords?`<div id="courseMap" style="width:100%;height:300px;border-radius:4px;border:1px solid var(--border);margin-bottom:36px;overflow:hidden"></div>`:''}
   <div class="timeline">`;
 
   data.main.forEach((p,i)=>{
@@ -410,12 +413,16 @@ function renderResult(data){
           <span class="conn-dist">${dl?`(${dl})`:''}</span>
           <div class="conn-line"></div>
         </div>`;
-      }else{
-        // 좌표 없으면 같은 area면 도보 추정, 다르면 이동
+      }else if(next._moveFromPrev){
         const sameArea=p.area===next.area;
         connHtml=`<div class="connector">
-          <span class="conn-mode">${sameArea?'도보':'이동'} 약 ${sameArea?10:20}분 추정</span>
-          <span class="conn-dist" style="font-size:11px;color:#bbb">(좌표 미등록)</span>
+          <span class="conn-mode">${sameArea?'도보':'이동'} 약 ${next._moveFromPrev}분</span>
+          <div class="conn-line"></div>
+        </div>`;
+      }else{
+        const sameArea=p.area===next.area;
+        connHtml=`<div class="connector">
+          <span class="conn-mode">${sameArea?'도보 약 10분':'이동 약 20분'}</span>
           <div class="conn-line"></div>
         </div>`;
       }
@@ -433,6 +440,68 @@ function renderResult(data){
   }
   html+='<button class="restart-btn" onclick="restart()">처음부터 다시</button>';
   box.innerHTML=html;
+
+  // 좌표 있는 장소가 있으면 지도 렌더링
+  if(hasCoords) setTimeout(()=>renderMap(data.main),100);
+}
+
+function renderMap(places){
+  const withCoords=places.filter(p=>p.lat&&p.lng);
+  if(!withCoords.length||typeof kakao==='undefined'||!kakao.maps)return;
+
+  const container=document.getElementById('courseMap');
+  if(!container)return;
+
+  const center=new kakao.maps.LatLng(withCoords[0].lat,withCoords[0].lng);
+  const map=new kakao.maps.Map(container,{center,level:5});
+
+  const bounds=new kakao.maps.LatLngBounds();
+  const linePath=[];
+
+  withCoords.forEach((p,i)=>{
+    const pos=new kakao.maps.LatLng(p.lat,p.lng);
+    bounds.extend(pos);
+    linePath.push(pos);
+
+    // 숫자 커스텀 오버레이
+    const idx=places.indexOf(p)+1;
+    const isAnchor=i===0;
+    const content=`<div style="
+      width:36px;height:36px;border-radius:50%;
+      background:${isAnchor?'#C4603A':'#1C1917'};
+      color:#fff;display:flex;align-items:center;justify-content:center;
+      font-family:'Noto Serif KR',serif;font-size:15px;font-weight:700;
+      box-shadow:0 2px 8px rgba(0,0,0,.25);
+      border:2px solid #fff;
+      cursor:pointer;
+    ">${idx}</div>
+    <div style="
+      position:absolute;left:50%;transform:translateX(-50%);
+      top:38px;white-space:nowrap;
+      background:rgba(28,25,23,.82);color:#fff;
+      font-size:11px;padding:3px 8px;border-radius:2px;
+      font-family:'Noto Sans KR',sans-serif;
+    ">${escapeHtml(p.name)}</div>`;
+
+    new kakao.maps.CustomOverlay({
+      position:pos,
+      content:`<div style="position:relative;text-align:center">${content}</div>`,
+      yAnchor:1.2
+    }).setMap(map);
+  });
+
+  // 연결선
+  if(linePath.length>1){
+    new kakao.maps.Polyline({
+      path:linePath,
+      strokeWeight:3,
+      strokeColor:'#C4603A',
+      strokeOpacity:0.7,
+      strokeStyle:'dashed'
+    }).setMap(map);
+  }
+
+  map.setBounds(bounds,60);
 }
 
 // ─────────────────────────────────────────────
